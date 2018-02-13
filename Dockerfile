@@ -3,7 +3,7 @@ FROM ubuntu:14.04
 WORKDIR /root
 
 RUN apt-get update \
- && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef python-jinja2 python-pygments software-properties-common sudo vim git m4 \
+ && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef python-jinja2 python-pygments software-properties-common sudo vim git m4 clang pkg-config libpcre3-dev \
  && add-apt-repository ppa:avsm/ppa -y \
  && add-apt-repository ppa:webupd8team/java -y \
  && apt-get update \
@@ -18,9 +18,11 @@ RUN wget -O rv-match.jar https://runtimeverification.com/match/download/linux \
  && cd csmith-2.3.0 \
  && ./configure && make -j 4 && make install \
  && wget -qO- https://get.haskellstack.org/ | sh \
- && stack setup
+ && stack --resolver lts-10.4 setup
 
 COPY . reagan/
+
+RUN cd /root/reagan && stack test
 
 ENV CPATH=":/usr/local/include/csmith-2.3.0" \
     PATH="/root/.local/bin:.:${PATH}"

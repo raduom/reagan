@@ -4,18 +4,21 @@ module Reagan.Compiler ( ExecutionResult(..)
                        , executeKcc
                        ) where
 
+import           Data.ByteString  (ByteString)
 import           Data.Text        (Text, pack, unpack)
 import           Pipes
-import           System.Directory (doesFileExist, getPermissions, setPermissions, setOwnerExecutable)
+import           System.Directory (doesFileExist, getPermissions,
+                                   setOwnerExecutable, setPermissions)
 import           System.IO.Temp   (emptySystemTempFile)
 
 import           Reagan.Generator
 import           Reagan.Run
 
 data ExecutionResult =
-   ExecutionResult { erCompilationOutput :: Text
-                   , erGeneratedProgram  :: Text
-                   , erChecksum          :: Maybe Text
+   ExecutionResult { erCompilationOutput :: ByteString
+                   , erGeneratedProgram  :: ByteString
+                   , erChecksum          :: Maybe ByteString
+                   , erSeed              :: Integer
                    } deriving (Show, Eq)
 
 execute :: Int -> Text -> [Text] -> GeneratedProgram -> IO ExecutionResult
@@ -27,6 +30,7 @@ execute timeout cpl args prg = do
   return  ExecutionResult { erCompilationOutput = outC
                           , erGeneratedProgram = gpOutputStream prg
                           , erChecksum = Just outR
+                          , erSeed = gpSeed prg
                           }
   where
     insertTempFile :: String -> [Text] -> [Text]

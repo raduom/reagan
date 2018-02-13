@@ -21,8 +21,15 @@ description:         Please see the README on Github at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
-- shelly
 - text
+- process
+- pipes
+- temporary
+- directory
+- bytestring
+- pcre-light
+- safe
+- containers
 
 library:
   source-dirs: src

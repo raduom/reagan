@@ -1,27 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Reagan.Run (runWithTimeout) where
 
-import
-  Control.Concurrent       (forkIO, threadDelay)
-import qualified Data.ByteString          as BS
+import           Control.Concurrent (forkIO, threadDelay)
+import qualified Data.ByteString    as BS
 import           Data.Maybe
-import           Data.Text                (Text, unpack)
-import           Data.Text.IO             (hGetContents)
-import Data.Text.Encoding (decodeUtf8)
-import           System.Exit              (ExitCode (..))
-import           System.IO                (Handle, hClose)
-import           System.Process           (CreateProcess (..), StdStream (..),
-                                           getProcessExitCode, proc,
-                                           terminateProcess, waitForProcess,
-                                           withCreateProcess)
-import           System.Process.Internals
-import Data.Monoid
-
-getPid ph = withProcessHandle ph go
-  where
-    go ph_ = case ph_ of
-               OpenHandle x   -> return $ Just x
-               ClosedHandle _ -> return Nothing
+import           Data.Monoid
+import           Data.Text          (Text, unpack)
+import           Data.Text.Encoding (decodeUtf8)
+import           Data.Text.IO       (hGetContents)
+import           System.Exit        (ExitCode (..))
+import           System.IO          (Handle, hClose)
+import           System.Process     (CreateProcess (..), ProcessHandle,
+                                     StdStream (..), getProcessExitCode, proc,
+                                     terminateProcess, waitForProcess,
+                                     withCreateProcess)
 
 readProcessStream :: ProcessHandle -> (Handle, Handle) -> IO (BS.ByteString, BS.ByteString)
 readProcessStream ph (out, err) = go (mempty, mempty)
@@ -39,7 +31,7 @@ readProcessStream ph (out, err) = go (mempty, mempty)
           errLast <- BS.hGetContents err
           return (outAcc' <> outLast, errAcc' <> errLast)
 
-runWithTimeout :: Int -> FilePath -> [Text] -> IO (Text, Text)
+runWithTimeout :: Int -> FilePath -> [Text] -> IO (BS.ByteString, BS.ByteString)
 runWithTimeout timeout executable args = do
   putStrLn $ "Running: " ++ executable ++ " " ++ (show args)
   withCreateProcess
@@ -50,5 +42,5 @@ runWithTimeout timeout executable args = do
           terminateProcess ph
         (out, err) <- readProcessStream ph (stdout, stderr)
         waitForProcess ph
-        return (decodeUtf8 out, decodeUtf8 err))
+        return (out, err))
 
