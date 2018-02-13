@@ -48,16 +48,6 @@ generateProgram generatorConfig = do
           return gp
     yield prg
 
-d0 :: ByteString
-d0 = "/*\
-\ * This is a RANDOMLY GENERATED PROGRAM.\n\
-\ *\n\
-\ * Generator: csmith 2.3.0\n\
-\ * Git version: 30dccd7\n\
-\ * Options:   (none)\n\
-\ * Seed:      10515825974410246227\n\
-\ */"
-
 mkGeneratedProgram :: FilePath -> ByteString -> Maybe GeneratedProgram
 mkGeneratedProgram fp content = do
   seed <- parseSeed content
