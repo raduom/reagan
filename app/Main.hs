@@ -1,35 +1,90 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import           Reagan
 import           Reagan.Compiler
+import           Reagan.Execution
 import           Reagan.Generator
-import           Reagan.Run
 
+import           Data.ByteString.Char8 (ByteString, pack)
 import           Data.Either
-import           Data.Map (Map)
+import           Data.Map              (Map)
+
+import           System.IO.Temp        (emptySystemTempFile)
+
+import           Control.Monad         (replicateM_)
 
 import           Pipes
-import           Pipes.Prelude    (fold, take)
+import           Pipes.Prelude         (fold, take)
 
-import           Prelude          (IO, id, map, print, ($), (>>=), Integer, undefined, Maybe, (/=), Maybe(..))
+kccCompiler :: CompilerDefinition
+kccCompiler =
+  CompilerDefinition { cdVersion = ExecutionConfig { ecCommand = "kcc"
+                                                   , ecArguments = ["--version"]
+                                                   , ecTimeout = 5
+                                                   }
+                     , cdCompilerOutput =
+                         \fp -> do
+                           executable <- emptySystemTempFile "kcc-out-"
+                           return ( ExecutionConfig { ecCommand = "kcc"
+                                                    , ecArguments = [pack fp, "-o", pack executable]
+                                                    , ecTimeout = 60
+                                                    }
+                                  , executable )
+                     }
 
-simpleTestProtocol :: GeneratorConfig -> Producer ExecutionResult IO ()
-simpleTestProtocol cfg =
-  for (generateProgram cfg)
-      (\prg -> do
-          (lift $ executeCLang 60 prg) >>= yield
-          (lift $ executeKcc 60 prg) >>= yield)
+clangCompiler :: CompilerDefinition
+clangCompiler =
+  CompilerDefinition { cdVersion = ExecutionConfig { ecCommand = "clang"
+                                                   , ecArguments = ["--version"]
+                                                   , ecTimeout = 5
+                                                   }
+                     , cdCompilerOutput =
+                         \fp -> do
+                           executable <- emptySystemTempFile "clang-out-"
+                           return ( ExecutionConfig { ecCommand = "clang"
+                                                    , ecArguments = [pack fp, "-o", pack executable]
+                                                    , ecTimeout = 10
+                                                    }
+                                  , executable )
+                     }
 
-divergenceProtocol :: GeneratorConfig -> Producer (Maybe Integer) IO ()
-divergenceProtocol cfg =
-  for (generateProgram cfg)
-      (\prg -> do
-          erCLang <- lift $ executeCLang 60 prg
-          erKcc <- lift $ executeKcc 60 prg
-          if (erChecksum erCLang /= erChecksum erKcc)
-            then yield $ Just (erSeed erCLang)
-            else yield Nothing)
+
+compilerDefinitions :: [CompilerDefinition]
+compilerDefinitions = [clangCompiler, clangCompiler]
+
+singleTest :: ExecutionConfig
+           -> IO ( Maybe GeneratedProgram
+                 , [(Maybe CompiledProgram, Maybe ExecutionWithChecksum)] )
+singleTest cfg = do
+  maybeGeneratedProgram <- generateProgram cfg
+  case maybeGeneratedProgram of
+             Nothing -> return (Nothing, [(Nothing, Nothing)])
+             Just generatedProgram -> do
+               tests <- mapM (executeWithCompiler generatedProgram) compilerDefinitions
+               return (Just generatedProgram, tests)
+  where
+    executeWithCompiler :: GeneratedProgram
+                        -> CompilerDefinition
+                        -> IO (Maybe CompiledProgram, Maybe ExecutionWithChecksum)
+    executeWithCompiler generatedProgram compilerDefinition = do
+      maybeCompiledProgram <- compileProgram compilerDefinition generatedProgram
+      case maybeCompiledProgram of
+        Nothing -> return (Nothing, Nothing)
+        Just compiledProgram -> do
+          maybeExecution <- executeProgram ExecutionConfig { ecTimeout = 60
+                                                           , ecCommand = (cpExecutablePath compiledProgram)
+                                                           , ecArguments = []
+                                                           }
+          case maybeExecution of
+            Nothing        -> return (Just compiledProgram, Nothing)
+            Just execution -> return (Just compiledProgram, Just execution)
 
 main :: IO ()
 main = do
-  ers <- fold (\ers er -> er : ers) [] id $ (divergenceProtocol defaultConfig >-> take 6)
-  print ers
+  replicateM_ 5 $ do
+    result <- singleTest ExecutionConfig { ecCommand = "/usr/local/bin/csmith"
+                                         , ecArguments = []
+                                         , ecTimeout = 10
+                                         }
+    putStrLn (show result)

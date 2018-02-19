@@ -30,6 +30,8 @@ dependencies:
 - pcre-light
 - safe
 - containers
+- time
+- filepath
 
 library:
   source-dirs: src

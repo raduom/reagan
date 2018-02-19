@@ -3,7 +3,7 @@ FROM ubuntu:14.04
 WORKDIR /root
 
 RUN apt-get update \
- && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef python-jinja2 python-pygments software-properties-common sudo vim git m4 clang pkg-config libpcre3-dev \
+ && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef python-jinja2 python-pygments software-properties-common sudo vim git m4 clang pkg-config \
  && add-apt-repository ppa:avsm/ppa -y \
  && add-apt-repository ppa:webupd8team/java -y \
  && apt-get update \
