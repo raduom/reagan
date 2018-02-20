@@ -2,15 +2,14 @@
 module Reagan.Compiler ( CompiledProgram(..)
                        , CompilerDefinition(..)
                        , compileProgram
+                       , mkCompilerDefinition
                        ) where
 
-import           Data.ByteString  (ByteString)
-import           Data.Text        (Text, pack, unpack)
-import           Data.Time.Clock  (NominalDiffTime, diffUTCTime)
-import           Pipes
-import           System.Directory (doesFileExist, getPermissions,
-                                   setOwnerExecutable, setPermissions)
-import           System.IO.Temp   (emptySystemTempFile)
+import           Data.ByteString.Char8 (ByteString, pack)
+import           Data.Time.Clock       (NominalDiffTime, diffUTCTime)
+import           System.Directory      (doesFileExist, getPermissions,
+                                        setOwnerExecutable, setPermissions)
+import           System.IO.Temp        (emptySystemTempFile)
 
 import           Reagan
 import           Reagan.Generator
@@ -22,11 +21,13 @@ data CompiledProgram =
                    , cpError          :: ByteString
                    , cpRunningTime    :: NominalDiffTime
                    , cpExecutablePath :: FilePath
+                   , cpCompilerTag    :: String
                    } deriving (Show, Eq)
 
 data CompilerDefinition =
   CompilerDefinition { cdVersion :: ExecutionConfig
                      , cdCompilerOutput :: FilePath -> IO (ExecutionConfig, FilePath)
+                     , cdTag :: String
                      }
 
 compileProgram :: CompilerDefinition
@@ -48,42 +49,45 @@ compileProgram compiler prg = do
                                         , cpError = erError result
                                         , cpRunningTime = runningTime result
                                         , cpExecutablePath = executablePath
+                                        , cpCompilerTag = (cdTag compiler)
                                         }
         else return Nothing
   where
     programPath = gpProgramPath prg
     compilerOutput = (cdCompilerOutput compiler)
 
+applyTemplate :: FilePath -> FilePath -> [ByteString] -> [ByteString]
+applyTemplate generatedProgram executable =
+  map (\arg -> if arg == "##PROGRAM##" then pack generatedProgram else arg) .
+  map (\arg -> if arg == "##EXECUTABLE##" then pack executable else arg)
+
+mkCompilerDefinition :: String -- ^ tag
+                     -> FilePath -- ^ compiler path
+                     -> [ByteString] -- ^ version fetching args
+                     -> [ByteString] -- ^ compilation args
+                     -> Int -- ^ compilation timeout
+                     -> CompilerDefinition
+mkCompilerDefinition tag cpath versionArgs compileArgs compilationTimeout =
+  CompilerDefinition { cdVersion = ExecutionConfig { ecTimeout = 5
+                                                   , ecCommand = cpath
+                                                   , ecArguments = versionArgs
+                                                   }
+                     , cdTag = tag
+                     , cdCompilerOutput =
+                         \generatedProgram -> do
+                           executable <- emptySystemTempFile (tag ++ "-")
+                           return (compilationConfig generatedProgram executable, executable)
+                     }
+  where
+    compilationConfig :: FilePath -> FilePath -> ExecutionConfig
+    compilationConfig prg exe =
+      ExecutionConfig { ecCommand = cpath
+                      , ecArguments = applyTemplate prg exe compileArgs
+                      , ecTimeout = compilationTimeout
+                      }
+
 makeExecutable :: FilePath -> IO ()
 makeExecutable fp = do
  ps <- getPermissions fp
  let ps' = setOwnerExecutable True ps
  setPermissions fp ps'
-
-{-
-runTest ::  -> GeneratedProgram -> IO TestResult
-runTest timeout cpl args prg = do
-  fp <- emptySystemTempFile $ unpack cpl ++ "-out-"
-  compilationResult <- runWithTimeout timeout (unpack cpl) (insertTempFile fp args) undefined
-  makeExecutable fp
-  executionResult <- runWithTimeout timeout fp [] undefined
-  return  TestResult { erCompilationOutput = (eOutput compilationResult)
-                     , erGeneratedProgram = gpOutputStream prg
-                     , erChecksum = Just (eOutput executionResult)
-                     , erSeed = gpSeed prg
-                     }
-  where
-    insertTempFile :: String -> [Text] -> [Text]
-    insertTempFile fp = map (\a -> if a == "##TEMP##" then (pack fp) else a)
-    makeExecutable :: FilePath -> IO ()
-    makeExecutable fp = do
-      ps <- getPermissions fp
-      let ps' = setOwnerExecutable True ps
-      setPermissions fp ps'
-
-runTestUsingCLang :: Int -> GeneratedProgram -> IO TestResult
-runTestUsingCLang timeout prg = execute timeout "clang" [(pack $ gpPath prg), "-o", "##TEMP##"] prg
-
-runTestUsingKcc :: Int -> GeneratedProgram -> IO TestResult
-runTestUsingKcc timeout prg = execute timeout "kcc" [(pack $ gpPath prg), "-o", "##TEMP##"] prg
--}
