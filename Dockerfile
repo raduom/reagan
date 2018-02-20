@@ -3,7 +3,7 @@ FROM ubuntu:14.04
 WORKDIR /root
 
 RUN apt-get update \
- && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef python-jinja2 python-pygments software-properties-common sudo vim git m4 clang pkg-config \
+ && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef python-jinja2 python-pygments software-properties-common sudo vim git m4 clang pkg-config libpcre3-dev \
  && add-apt-repository ppa:avsm/ppa -y \
  && add-apt-repository ppa:webupd8team/java -y \
  && apt-get update \
@@ -19,6 +19,12 @@ RUN wget -O rv-match.jar https://runtimeverification.com/match/download/linux \
  && ./configure && make -j 4 && make install \
  && wget -qO- https://get.haskellstack.org/ | sh \
  && stack --resolver lts-10.4 setup
+
+RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin \
+    && opam switch 4.05.0 \
+    && eval `opam config env` \
+    && opam install coq=8.7.1 \
+    && opam install menhir
 
 COPY . reagan/
 

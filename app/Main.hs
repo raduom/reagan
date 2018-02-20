@@ -12,7 +12,7 @@ import           Data.Map              (Map)
 
 import           System.IO.Temp        (emptySystemTempFile)
 
-import           Control.Monad         (replicateM_)
+import           Control.Monad         (replicateM_, forM)
 
 import           Pipes
 import           Pipes.Prelude         (fold, take)
@@ -58,27 +58,23 @@ singleTest :: ExecutionConfig
                  , [Maybe (CompiledProgram, Maybe ExecutionWithChecksum)]) )
 singleTest cfg = do
   maybeGeneratedProgram <- generateProgram cfg
-  case maybeGeneratedProgram of
-             Nothing -> return Nothing
-             Just generatedProgram -> do
-               tests <- mapM (executeWithCompiler generatedProgram) compilerDefinitions
-               return $ Just (generatedProgram, tests)
+  forM maybeGeneratedProgram $
+    \generatedProgram -> do
+      tests <- mapM (executeWithCompiler generatedProgram) compilerDefinitions
+      return (generatedProgram, tests)
   where
     executeWithCompiler :: GeneratedProgram
                         -> CompilerDefinition
                         -> IO (Maybe (CompiledProgram, Maybe ExecutionWithChecksum))
     executeWithCompiler generatedProgram compilerDefinition = do
       maybeCompiledProgram <- compileProgram compilerDefinition generatedProgram
-      case maybeCompiledProgram of
-        Nothing -> return Nothing
-        Just compiledProgram -> do
+      forM maybeCompiledProgram $
+        \compiledProgram -> do
           maybeExecution <- executeProgram ExecutionConfig { ecTimeout = 60
                                                            , ecCommand = (cpExecutablePath compiledProgram)
                                                            , ecArguments = []
                                                            }
-          case maybeExecution of
-            Nothing        -> return $ Just (compiledProgram, Nothing)
-            Just execution -> return $ Just (compiledProgram, Just execution)
+          return (compiledProgram, maybeExecution)
 
 main :: IO ()
 main = do
