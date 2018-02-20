@@ -54,31 +54,31 @@ compilerDefinitions :: [CompilerDefinition]
 compilerDefinitions = [clangCompiler, clangCompiler]
 
 singleTest :: ExecutionConfig
-           -> IO ( Maybe GeneratedProgram
-                 , [(Maybe CompiledProgram, Maybe ExecutionWithChecksum)] )
+           -> IO ( Maybe (GeneratedProgram
+                 , [Maybe (CompiledProgram, Maybe ExecutionWithChecksum)]) )
 singleTest cfg = do
   maybeGeneratedProgram <- generateProgram cfg
   case maybeGeneratedProgram of
-             Nothing -> return (Nothing, [(Nothing, Nothing)])
+             Nothing -> return Nothing
              Just generatedProgram -> do
                tests <- mapM (executeWithCompiler generatedProgram) compilerDefinitions
-               return (Just generatedProgram, tests)
+               return $ Just (generatedProgram, tests)
   where
     executeWithCompiler :: GeneratedProgram
                         -> CompilerDefinition
-                        -> IO (Maybe CompiledProgram, Maybe ExecutionWithChecksum)
+                        -> IO (Maybe (CompiledProgram, Maybe ExecutionWithChecksum))
     executeWithCompiler generatedProgram compilerDefinition = do
       maybeCompiledProgram <- compileProgram compilerDefinition generatedProgram
       case maybeCompiledProgram of
-        Nothing -> return (Nothing, Nothing)
+        Nothing -> return Nothing
         Just compiledProgram -> do
           maybeExecution <- executeProgram ExecutionConfig { ecTimeout = 60
                                                            , ecCommand = (cpExecutablePath compiledProgram)
                                                            , ecArguments = []
                                                            }
           case maybeExecution of
-            Nothing        -> return (Just compiledProgram, Nothing)
-            Just execution -> return (Just compiledProgram, Just execution)
+            Nothing        -> return $ Just (compiledProgram, Nothing)
+            Just execution -> return $ Just (compiledProgram, Just execution)
 
 main :: IO ()
 main = do
