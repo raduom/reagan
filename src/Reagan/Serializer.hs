@@ -7,7 +7,7 @@ import           Data.List        (groupBy, sortBy)
 import Data.Bifunctor (first, second, bimap)
 import           Data.Maybe       (catMaybes, isNothing, isJust, fromJust)
 import           System.Directory (copyFile, createDirectory,
-                                   getCurrentDirectory)
+                                   getCurrentDirectory, removeFile)
 import           System.FilePath  ((</>))
 
 import           Reagan.Compiler
@@ -35,6 +35,7 @@ serialize (prg, rest) = do
       createDirectory rootPath
       writeFile (rootPath </> "generator.out") (show prg)
       copyFile (gpProgramPath prg) (rootPath </> "program.c")
+      removeFile (gpProgramPath prg)
       mapM_ (serializeC rootPath) rest
       let report = DivergenceReport { drFailedCompilation = getFailedComputations rest
                                     , drWrongChecksum = getWrongChecksums rest
@@ -50,6 +51,7 @@ serializeC rootPath (compiledProgram, rest) = do
   writeFile (rootPath </> prefix ++ "_compiler.out") (show compiledProgram)
   forM_ rest $
       writeFile (rootPath </> prefix ++ "_execution.out") . show
+  forM_ (cpExecutablePath compiledProgram) removeFile
 
 getFailedComputations :: [(CompiledProgram, Maybe ExecutionWithChecksum)]
                       -> [String]
