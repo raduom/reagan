@@ -1,18 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
+
+
+
 module Main where
 
 import           Reagan
 import           Reagan.Compiler
 import           Reagan.Execution
 import           Reagan.Generator
+import           Reagan.Serializer
 
 import           Data.ByteString.Char8 (ByteString, pack)
 import           Data.Either
 import           Data.Map              (Map)
+import           Data.Maybe            (maybe)
 
 import           System.IO.Temp        (emptySystemTempFile)
 
-import           Control.Monad         (forM, replicateM_)
+import           Control.Monad         (forM, forever)
 
 import           Pipes
 import           Pipes.Prelude         (fold, take)
@@ -26,38 +31,38 @@ kccCompiler = mkCompilerDefinition "kcc_default" "kcc" ["--version"] ["##PROGRAM
 clangCompiler :: CompilerDefinition
 clangCompiler = mkCompilerDefinition "clang_default" "clang" ["--version"] ["##PROGRAM##", "-o", "##EXECUTABLE##"] 10
 
+gccCompiler :: CompilerDefinition
+gccCompiler = mkCompilerDefinition "gcc_default" "gcc" ["--version"] ["##PROGRAM##", "-o", "##EXECUTABLE##"] 10
+
 compilerDefinitions :: [CompilerDefinition]
-compilerDefinitions = [clangCompiler, ccertCompiler]
+compilerDefinitions = [clangCompiler, ccertCompiler, kccCompiler, gccCompiler]
 
 singleTest :: ExecutionConfig
-           -> IO (  Maybe (GeneratedProgram
-                 , [Maybe (CompiledProgram, Maybe ExecutionWithChecksum)]) )
+           -> IO (GeneratedProgram
+                          , [(CompiledProgram, Maybe ExecutionWithChecksum)])
 singleTest cfg =
-  generateProgram cfg >>= (traverse $
+  generateProgram cfg >>= (
     \generatedProgram -> do
       testResults <- mapM (executeWithCompiler generatedProgram) compilerDefinitions
       return (generatedProgram, testResults))
 
 executeWithCompiler :: GeneratedProgram
                     -> CompilerDefinition
-                    -> IO (Maybe (CompiledProgram, Maybe ExecutionWithChecksum))
+                    -> IO (CompiledProgram, Maybe ExecutionWithChecksum)
 executeWithCompiler generatedProgram compilerDefinition = do
-  compileProgram compilerDefinition generatedProgram >>= (traverse $
-    \compiledProgram -> do
-      maybeExecution <-
-        executeProgram ExecutionConfig { ecTimeout = 60
-                                       , ecCommand = (cpExecutablePath compiledProgram)
-                                       , ecArguments = []
-                                       }
-      return (compiledProgram, maybeExecution))
-
-
+  program <- compileProgram compilerDefinition generatedProgram
+  executable <- forM (cpExecutablePath program) $
+    \cmd -> executeProgram ExecutionConfig { ecTimeout = 60
+                                           , ecCommand = cmd
+                                           , ecArguments = []
+                                           }
+  return (program, executable)
 
 main :: IO ()
-main = do
-  replicateM_ 5 $ do
+main =
+  forever $ do
     result <- singleTest ExecutionConfig { ecCommand = "csmith"
                                          , ecArguments = []
                                          , ecTimeout = 10
                                          }
-    putStrLn (show result)
+    serialize result

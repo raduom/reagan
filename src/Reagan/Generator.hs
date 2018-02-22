@@ -21,9 +21,10 @@ import           Reagan
 
 data GeneratedProgram =
   GeneratedProgram { gpTimeout     :: Int
-                   , gpSeed        :: Integer
+                   , gpSeed        :: Maybe Integer
                    , gpArguments   :: [ByteString]
                    , gpVersion     :: ByteString
+                   , gpOptions     :: Maybe ByteString
                    , gpProgramPath :: FilePath
                    , gpRunningTime :: NominalDiffTime
                    } deriving (Show, Eq)
@@ -33,50 +34,37 @@ generatedFileTemplate = "csmith-generated-.c"
 
 versionCommand :: ExecutionConfig -> ExecutionConfig
 versionCommand cfg =
-  cfg { ecArguments = "--version" : (ecArguments cfg) }
+  cfg { ecArguments = "--version" : ecArguments cfg }
 
-generateProgram :: ExecutionConfig -> IO (Maybe GeneratedProgram)
+generateProgram :: ExecutionConfig -> IO GeneratedProgram
 generateProgram cfg = fst <$> execute cfg generateProgram'
 
-generateProgram' :: ExecutionResult -> IO (Maybe GeneratedProgram)
+generateProgram' :: ExecutionResult -> IO GeneratedProgram
 generateProgram' r = do
   prgPath <- writeSystemTempFile generatedFileTemplate (unpack output)
   versionOutput <- getVersionOutput
   let runningTime = diffUTCTime (erStart r) (erFinished r)
-  return $
-    maybeGeneratedProgram output
-      (\seed options ->
-          GeneratedProgram { gpTimeout = ecTimeout cfg
-                           , gpSeed = seed
-                           , gpArguments = ecArguments cfg
-                           , gpVersion = versionOutput
-                           , gpProgramPath = prgPath
-                           , gpRunningTime = runningTime
-                           })
+  return
+    GeneratedProgram { gpTimeout = ecTimeout cfg
+                     , gpSeed = parseSeed output
+                     , gpArguments = ecArguments cfg
+                     , gpVersion = versionOutput
+                     , gpProgramPath = prgPath
+                     , gpOptions = parseOptions output
+                     , gpRunningTime = runningTime
+                     }
   where
     output           = erOutput r
     cfg              = erConfig r
+    reOptions = compile "\\s\\*\\sOptions:\\s*(.+)\\s*$" [multiline]
+    reSeed = compile "\\s\\*\\sSeed:\\s+(\\d+)" []
     getVersionOutput :: IO ByteString
     getVersionOutput =
-      erOutput <$> (onlyResult $ execute (versionCommand cfg))
-
-maybeGeneratedProgram :: ByteString
-                      -> (Integer -> ByteString -> GeneratedProgram)
-                      -> Maybe GeneratedProgram
-maybeGeneratedProgram content ctor =
-  ctor <$> parseSeed content <*> parseOptions content
-  where
-    reSeed :: Regex
-    reSeed = compile "\\s\\*\\sSeed:\\s+(\\d+)" []
-
-    reOptions :: Regex
-    reOptions = compile "\\s\\*\\sOptions:\\s*(.+)\\s*$" [multiline]
-
+      erOutput <$> onlyResult (execute (versionCommand cfg))
+    parseOptions :: ByteString -> Maybe ByteString
+    parseOptions prg =
+      match reOptions prg [] >>= tailMay >>= headMay
     parseSeed :: ByteString -> Maybe Integer
     parseSeed prg = do
       seed <- match reSeed prg [] >>= tailMay >>= headMay
       readMaybe (unpack seed)
-
-    parseOptions :: ByteString -> Maybe ByteString
-    parseOptions prg = do
-      match reOptions prg [] >>= tailMay >>= headMay

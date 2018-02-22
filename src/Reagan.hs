@@ -15,9 +15,8 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Text.Encoding    (decodeUtf8)
 import           Data.Text.IO          (hGetContents)
-import           Data.Time.Clock       (NominalDiffTime, diffUTCTime)
-import           Data.Time.Clock       (UTCTime, getCurrentTime)
-
+import           Data.Time.Clock       (NominalDiffTime, UTCTime, diffUTCTime,
+                                        getCurrentTime)
 import           System.Exit           (ExitCode (..))
 import           System.IO             (Handle, hClose)
 import           System.Process        (CreateProcess (..), ProcessHandle,
@@ -61,18 +60,18 @@ readProcessStream ph (out, err) = go (mempty, mempty)
           return (outAcc' <> outLast, errAcc' <> errLast)
 
 onlyValue :: ExecutionConfig
-          -> (ExecutionResult -> IO (Maybe a))
-          -> IO (Maybe a)
-onlyValue cfg process = fst <$> (execute cfg process)
+          -> (ExecutionResult -> IO a)
+          -> IO a
+onlyValue cfg process = fst <$> execute cfg process
 
 onlyResult :: ((ExecutionResult -> IO (Maybe ExecutionResult))
                                 -> IO (Maybe ExecutionResult, ExecutionResult))
             -> IO ExecutionResult
-onlyResult runCmd = snd <$> (runCmd $ return . Just)
+onlyResult runCmd = snd <$> runCmd (return . Just)
 
 execute :: ExecutionConfig
-        -> (ExecutionResult -> IO (Maybe a))
-        -> IO (Maybe a, ExecutionResult)
+        -> (ExecutionResult -> IO a)
+        -> IO (a, ExecutionResult)
 execute cfg processResult = do
   let executable = ecCommand cfg
       args       = ecArguments cfg

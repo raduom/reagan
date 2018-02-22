@@ -16,29 +16,26 @@ data ExecutionWithChecksum =
   ExecutionWithChecksum { ewcTimeout :: Int
                         , ewcOutput :: ByteString
                         , ewcError :: ByteString
-                        , ewcChecksum :: Int
+                        , ewcChecksum :: Maybe Int
                         , ewcRunningTime :: NominalDiffTime
+                        , ewcExecutablePath :: FilePath
                     } deriving (Show, Eq)
 
-executeProgram :: ExecutionConfig -> IO (Maybe ExecutionWithChecksum)
+executeProgram :: ExecutionConfig -> IO ExecutionWithChecksum
 executeProgram cfg =
   onlyValue cfg $
-    \result -> do
-      putStrLn $ "Parsing: " ++ (unpack $ erOutput result)
-      return $ ctor result <$> parseChecksum (erOutput result)
-  where
-    ctor :: ExecutionResult -> Int -> ExecutionWithChecksum
-    ctor result checksum =
-      ExecutionWithChecksum { ewcTimeout = ecTimeout cfg
-                            , ewcOutput = erOutput result
-                            , ewcError = erError result
-                            , ewcChecksum = checksum
-                            , ewcRunningTime = runningTime result
-                            }
+    \result ->
+      return ExecutionWithChecksum { ewcTimeout = ecTimeout cfg
+                                   , ewcOutput = erOutput result
+                                   , ewcError = erError result
+                                   , ewcChecksum = parseChecksum (erOutput result)
+                                   , ewcRunningTime = runningTime result
+                                   , ewcExecutablePath = ecCommand cfg
+                                   }
 
 parseChecksum :: ByteString -> Maybe Int
 parseChecksum input = do
   checksum <- match reChecksum input [] >>= tailMay >>= headMay
-  readMaybe $ "0x" ++ (unpack checksum)
+  readMaybe $ "0x" ++ unpack checksum
   where
     reChecksum = compile "checksum = ([0-9A-F]+)" []

@@ -5,10 +5,11 @@ module Reagan.Compiler ( CompiledProgram(..)
                        , mkCompilerDefinition
                        ) where
 
+import           Control.Monad         (when)
 import           Data.ByteString.Char8 (ByteString, pack)
 import           Data.Time.Clock       (NominalDiffTime, diffUTCTime)
 import           System.Directory      (doesFileExist, getPermissions,
-                                        setOwnerExecutable, setPermissions)
+                                        setOwnerExecutable, setPermissions, getFileSize)
 import           System.IO.Temp        (emptySystemTempFile)
 
 import           Reagan
@@ -20,7 +21,7 @@ data CompiledProgram =
                    , cpOutput         :: ByteString
                    , cpError          :: ByteString
                    , cpRunningTime    :: NominalDiffTime
-                   , cpExecutablePath :: FilePath
+                   , cpExecutablePath :: Maybe FilePath
                    , cpCompilerTag    :: String
                    } deriving (Show, Eq)
 
@@ -32,34 +33,36 @@ data CompilerDefinition =
 
 compileProgram :: CompilerDefinition
                -> GeneratedProgram
-               -> IO (Maybe CompiledProgram)
+               -> IO CompiledProgram
 compileProgram compiler prg = do
   (executionConfig, executablePath) <- compilerOutput programPath
   onlyValue executionConfig $
     \result -> do
       compilerVersionOutput <-
-        erOutput <$> (onlyResult $ execute (cdVersion compiler))
-      compilationSuccess <- doesFileExist executablePath
-      if compilationSuccess
-        then do
-          makeExecutable executablePath
-          return $ Just CompiledProgram { cpTimeout = ecTimeout executionConfig
-                                        , cpVersion = compilerVersionOutput
-                                        , cpOutput = erOutput result
-                                        , cpError = erError result
-                                        , cpRunningTime = runningTime result
-                                        , cpExecutablePath = executablePath
-                                        , cpCompilerTag = (cdTag compiler)
-                                        }
-        else return Nothing
+        erOutput <$> onlyResult (execute (cdVersion compiler))
+      compilationSuccess <- do
+        fileExists <- doesFileExist executablePath
+        fileSize <- getFileSize executablePath
+        return $ fileExists && (fileSize > 0)
+      when compilationSuccess $ makeExecutable executablePath
+      let executable =
+            if compilationSuccess then Just executablePath
+                                  else Nothing
+      return CompiledProgram { cpTimeout = ecTimeout executionConfig
+                             , cpVersion = compilerVersionOutput
+                             , cpOutput = erOutput result
+                             , cpError = erError result
+                             , cpRunningTime = runningTime result
+                             , cpExecutablePath = executable
+                             , cpCompilerTag = cdTag compiler
+                             }
   where
     programPath = gpProgramPath prg
-    compilerOutput = (cdCompilerOutput compiler)
+    compilerOutput = cdCompilerOutput compiler
 
 applyTemplate :: FilePath -> FilePath -> [ByteString] -> [ByteString]
 applyTemplate generatedProgram executable =
-  map (\arg -> if arg == "##PROGRAM##" then pack generatedProgram else arg) .
-  map (\arg -> if arg == "##EXECUTABLE##" then pack executable else arg)
+  map $ (\arg -> if arg == "##PROGRAM##" then pack generatedProgram else arg) . (\arg -> if arg == "##EXECUTABLE##" then pack executable else arg)
 
 mkCompilerDefinition :: String -- ^ tag
                      -> FilePath -- ^ compiler path
