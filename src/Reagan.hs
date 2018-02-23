@@ -7,22 +7,32 @@ module Reagan
   , onlyValue
   , onlyResult ) where
 
-import           Control.Concurrent    (forkIO, threadDelay)
-
-import qualified Data.ByteString       as BS
-import           Data.ByteString.Char8 (unpack)
+import           Control.Concurrent       (forkIO, threadDelay)
+import Control.Monad (forM_)
+import           Control.Monad.IO.Class   (liftIO)
+import qualified Data.ByteString          as BS
+import           Data.ByteString.Char8    (unpack)
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Text.Encoding    (decodeUtf8)
-import           Data.Text.IO          (hGetContents)
-import           Data.Time.Clock       (NominalDiffTime, UTCTime, diffUTCTime,
-                                        getCurrentTime)
-import           System.Exit           (ExitCode (..))
-import           System.IO             (Handle, hClose)
-import           System.Process        (CreateProcess (..), ProcessHandle,
-                                        StdStream (..), getProcessExitCode,
-                                        proc, terminateProcess, waitForProcess,
-                                        withCreateProcess)
+import           Data.Text.Encoding       (decodeUtf8)
+import           Data.Text.IO             (hGetContents)
+import           Data.Time.Clock          (NominalDiffTime, UTCTime,
+                                           diffUTCTime, getCurrentTime)
+import           System.Exit              (ExitCode (..))
+import           System.IO                (Handle, hClose)
+import           System.Process           (CreateProcess (..),
+                                           ProcessHandle (..), StdStream (..),
+                                           callProcess, getProcessExitCode,
+                                           proc, terminateProcess,
+                                           waitForProcess, withCreateProcess)
+import qualified System.Process.Internals as SPI (ProcessHandle__ (..),
+                                                  withProcessHandle)
+
+getPid ph = SPI.withProcessHandle ph go
+  where
+    go ph_ = case ph_ of
+               SPI.OpenHandle x   -> return $ Just x
+               SPI.ClosedHandle _ -> return Nothing
 
 data ExecutionConfig =
   ExecutionConfig { ecCommand   :: FilePath
@@ -76,14 +86,20 @@ execute cfg processResult = do
   let executable = ecCommand cfg
       args       = ecArguments cfg
       timeout    = ecTimeout cfg
-  putStrLn $ "Running: " ++ executable ++ " " ++ (show args)
+  putStrLn $ "Running: " ++ executable ++ " " ++ show args
   startExecution <- getCurrentTime
   withCreateProcess
     (proc executable (map unpack args)) { std_out = CreatePipe, std_err = CreatePipe }
     (\_ (Just stdout) (Just stderr) ph -> do
         forkIO $ do
           threadDelay (timeout * 1000000)
-          terminateProcess ph
+--          putStrLn $ "Terminating process."
+--          terminateProcess ph
+          pid <- getPid ph
+          forM_ pid $
+            \p -> do
+              putStrLn $ "Killing process: " ++ show p
+              callProcess "rkill" ["-9", show p]
         (out, err) <- readProcessStream ph (stdout, stderr)
         waitForProcess ph
         finishedExecution <- getCurrentTime
