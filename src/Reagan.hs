@@ -8,7 +8,7 @@ module Reagan
   , onlyResult ) where
 
 import           Control.Concurrent       (forkIO, threadDelay)
-import Control.Monad (forM_)
+import           Control.Monad            (forM_)
 import           Control.Monad.IO.Class   (liftIO)
 import qualified Data.ByteString          as BS
 import           Data.ByteString.Char8    (unpack)
@@ -23,7 +23,7 @@ import           System.IO                (Handle, hClose)
 import           System.Process           (CreateProcess (..),
                                            ProcessHandle (..), StdStream (..),
                                            callProcess, getProcessExitCode,
-                                           proc, terminateProcess,
+                                           proc, spawnProcess, terminateProcess,
                                            waitForProcess, withCreateProcess)
 import qualified System.Process.Internals as SPI (ProcessHandle__ (..),
                                                   withProcessHandle)
@@ -93,13 +93,11 @@ execute cfg processResult = do
     (\_ (Just stdout) (Just stderr) ph -> do
         forkIO $ do
           threadDelay (timeout * 1000000)
---          putStrLn $ "Terminating process."
---          terminateProcess ph
           pid <- getPid ph
           forM_ pid $
             \p -> do
               putStrLn $ "Killing process: " ++ show p
-              callProcess "rkill" ["-9", show p]
+              spawnProcess "rkill" ["-9", show p]
         (out, err) <- readProcessStream ph (stdout, stderr)
         waitForProcess ph
         finishedExecution <- getCurrentTime
