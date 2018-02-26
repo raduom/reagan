@@ -16,13 +16,13 @@ import           Reagan
 import           Reagan.Generator
 
 data CompiledProgram =
-   CompiledProgram { cpTimeout        :: Int
-                   , cpVersion        :: ByteString
-                   , cpOutput         :: ByteString
-                   , cpError          :: ByteString
-                   , cpRunningTime    :: NominalDiffTime
-                   , cpExecutablePath :: Maybe FilePath
-                   , cpCompilerTag    :: String
+   CompiledProgram { cpTimeout        :: Int              -- ^ Timeout used for compilation
+                   , cpVersion        :: ByteString       -- ^ Version information
+                   , cpOutput         :: ByteString       -- ^ Compiler output
+                   , cpError          :: ByteString       -- ^ Compiler errors
+                   , cpRunningTime    :: NominalDiffTime  -- ^ Running time
+                   , cpExecutablePath :: Maybe FilePath   -- ^ Compiler path
+                   , cpCompilerTag    :: String           -- ^ Compiler tag
                    } deriving (Show, Eq)
 
 data CompilerDefinition =

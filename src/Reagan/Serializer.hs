@@ -2,10 +2,10 @@ module Reagan.Serializer ( serialize
                          )where
 
 import           Control.Monad    (when)
+import           Data.Bifunctor   (bimap, first, second)
 import           Data.Foldable    (forM_)
 import           Data.List        (groupBy, sortBy)
-import Data.Bifunctor (first, second, bimap)
-import           Data.Maybe       (catMaybes, isNothing, isJust, fromJust)
+import           Data.Maybe       (catMaybes, fromJust, isJust, isNothing)
 import           System.Directory (copyFile, createDirectory,
                                    getCurrentDirectory, removeFile)
 import           System.FilePath  ((</>))
@@ -15,8 +15,8 @@ import           Reagan.Execution
 import           Reagan.Generator
 
 data DivergenceReport =
-  DivergenceReport { drFailedCompilation :: [String]
-                   , drWrongChecksum     :: [(String, Int)]
+  DivergenceReport { drFailedCompilation :: [String]        -- ^ Compiler tags that failed compilation.
+                   , drWrongChecksum     :: [(String, Int)] -- ^ Compiler tags and divergent checksums.
                    } deriving (Show, Eq)
 
 isDivergent :: DivergenceReport -> Bool
