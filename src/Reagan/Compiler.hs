@@ -64,11 +64,11 @@ applyTemplate :: FilePath -> FilePath -> [ByteString] -> [ByteString]
 applyTemplate generatedProgram executable =
   map $ (\arg -> if arg == "##PROGRAM##" then pack generatedProgram else arg) . (\arg -> if arg == "##EXECUTABLE##" then pack executable else arg)
 
-mkCompilerDefinition :: String -- ^ tag
-                     -> FilePath -- ^ compiler path
-                     -> [ByteString] -- ^ version fetching args
-                     -> [ByteString] -- ^ compilation args
-                     -> Int -- ^ compilation timeout
+mkCompilerDefinition :: String       -- ^ Compiler tag
+                     -> FilePath     -- ^ Compiler command
+                     -> [ByteString] -- ^ Version fetching arguments
+                     -> [ByteString] -- ^ Compilation arguments
+                     -> Int          -- ^ Compilation Timeout
                      -> CompilerDefinition
 mkCompilerDefinition tag cpath versionArgs compileArgs compilationTimeout =
   CompilerDefinition { cdVersion = ExecutionConfig { ecTimeout = 5

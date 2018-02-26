@@ -20,13 +20,13 @@ import           Text.Regex.PCRE.Light (Regex, compile, match, multiline)
 import           Reagan
 
 data GeneratedProgram =
-  GeneratedProgram { gpTimeout     :: Int
-                   , gpSeed        :: Maybe Integer
-                   , gpArguments   :: [ByteString]
-                   , gpVersion     :: ByteString
-                   , gpOptions     :: Maybe ByteString
-                   , gpProgramPath :: FilePath
-                   , gpRunningTime :: NominalDiffTime
+  GeneratedProgram { gpTimeout     :: Int               -- ^ Timeout used for generation (seconds)
+                   , gpSeed        :: Maybe Integer     -- ^ Generator seed
+                   , gpArguments   :: [ByteString]      -- ^ Generator arguments
+                   , gpVersion     :: ByteString        -- ^ Version Information
+                   , gpOptions     :: Maybe ByteString  -- ^ Generator options (parsed from output)
+                   , gpProgramPath :: FilePath          -- ^ Path to generator program
+                   , gpRunningTime :: NominalDiffTime   -- ^ Running time
                    } deriving (Show, Eq)
 
 generatedFileTemplate :: String

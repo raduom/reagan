@@ -1,7 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-
-
-
 module Main where
 
 import           Reagan
@@ -22,6 +19,11 @@ import           Control.Monad         (forM, forever)
 import           Pipes
 import           Pipes.Prelude         (fold, take)
 
+-- [ Configuration section ]
+
+compilerDefinitions :: [CompilerDefinition]
+compilerDefinitions = [clangCompiler, ccertCompiler, kccCompiler, gccCompiler]
+
 ccertCompiler :: CompilerDefinition
 ccertCompiler = mkCompilerDefinition "ccomp_default" "ccomp" ["-version"] ["-fall", "##PROGRAM##", "-o", "##EXECUTABLE##"] 60
 
@@ -34,8 +36,13 @@ clangCompiler = mkCompilerDefinition "clang_default" "clang" ["--version"] ["##P
 gccCompiler :: CompilerDefinition
 gccCompiler = mkCompilerDefinition "gcc_default" "gcc" ["--version"] ["##PROGRAM##", "-o", "##EXECUTABLE##"] 10
 
-compilerDefinitions :: [CompilerDefinition]
-compilerDefinitions = [clangCompiler, ccertCompiler, kccCompiler, gccCompiler]
+executionTimeout :: Int
+executionTimeout = 60
+
+generatorTimeout :: Int
+generatorTimeout = 10
+
+-- [ Protocol Section ]
 
 singleTest :: ExecutionConfig
            -> IO (GeneratedProgram
@@ -52,7 +59,7 @@ executeWithCompiler :: GeneratedProgram
 executeWithCompiler generatedProgram compilerDefinition = do
   program <- compileProgram compilerDefinition generatedProgram
   executable <- forM (cpExecutablePath program) $
-    \cmd -> executeProgram ExecutionConfig { ecTimeout = 60
+    \cmd -> executeProgram ExecutionConfig { ecTimeout = executionTimeout
                                            , ecCommand = cmd
                                            , ecArguments = []
                                            }
@@ -63,6 +70,6 @@ main =
   forever $ do
     result <- singleTest ExecutionConfig { ecCommand = "csmith"
                                          , ecArguments = []
-                                         , ecTimeout = 10
+                                         , ecTimeout = generatorTimeout
                                          }
     serialize result

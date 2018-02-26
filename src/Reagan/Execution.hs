@@ -1,24 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Reagan.Execution where
 
-import Data.ByteString (ByteString)
-import Data.ByteString.Char8 (unpack)
-import Data.Time.Clock (NominalDiffTime)
-import Data.Maybe (mapMaybe)
-import Text.Read (readMaybe)
-import Text.Regex.PCRE.Light (Regex, compile, match)
-import Safe (headMay, tailMay)
+import           Data.ByteString       (ByteString)
+import           Data.ByteString.Char8 (unpack)
+import           Data.Maybe            (mapMaybe)
+import           Data.Time.Clock       (NominalDiffTime)
+import           Safe                  (headMay, tailMay)
+import           Text.Read             (readMaybe)
+import           Text.Regex.PCRE.Light (Regex, compile, match)
 
-import Reagan
-import Reagan.Compiler
+import           Reagan
+import           Reagan.Compiler
 
 data ExecutionWithChecksum =
-  ExecutionWithChecksum { ewcTimeout :: Int
-                        , ewcOutput :: ByteString
-                        , ewcError :: ByteString
-                        , ewcChecksum :: Maybe Int
-                        , ewcRunningTime :: NominalDiffTime
-                        , ewcExecutablePath :: FilePath
+  ExecutionWithChecksum { ewcTimeout        :: Int             -- ^ Timeout used for execution
+                        , ewcOutput         :: ByteString      -- ^ Execution output
+                        , ewcError          :: ByteString      -- ^ Execution errors
+                        , ewcChecksum       :: Maybe Int       -- ^ Execution checksum
+                        , ewcRunningTime    :: NominalDiffTime -- ^ Running time
+                        , ewcExecutablePath :: FilePath        -- ^ Path to executable
                     } deriving (Show, Eq)
 
 executeProgram :: ExecutionConfig -> IO ExecutionWithChecksum
