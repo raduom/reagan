@@ -69,7 +69,7 @@ main :: IO ()
 main =
   forever $ do
     result <- singleTest ExecutionConfig { ecCommand = "csmith"
-                                         , ecArguments = []
+                                         , ecArguments = ["--no-packed-struct"]
                                          , ecTimeout = generatorTimeout
                                          }
     serialize result
