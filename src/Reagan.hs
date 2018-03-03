@@ -97,7 +97,7 @@ execute cfg processResult = do
           forM_ pid $
             \p -> do
               putStrLn $ "Killing process: " ++ show p
-              spawnProcess "rkill" ["-9", show p]
+              spawnProcess "rkill" ["-9", show p] >>= waitForProcess
         (out, err) <- readProcessStream ph (stdout, stderr)
         waitForProcess ph
         finishedExecution <- getCurrentTime
