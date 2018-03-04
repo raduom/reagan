@@ -42,8 +42,11 @@ compileProgram compiler prg = do
         erOutput <$> onlyResult (execute (cdVersion compiler))
       compilationSuccess <- do
         fileExists <- doesFileExist executablePath
-        fileSize <- getFileSize executablePath
-        return $ fileExists && (fileSize > 0)
+        if fileExists
+          then do
+            fileSize <- getFileSize executablePath
+            return $ fileExists && (fileSize > 0)
+          else return False
       when compilationSuccess $ makeExecutable executablePath
       let executable =
             if compilationSuccess then Just executablePath
