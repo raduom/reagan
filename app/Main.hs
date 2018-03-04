@@ -9,15 +9,10 @@ import           Reagan.Serializer
 
 import           Data.ByteString.Char8 (ByteString, pack)
 import           Data.Either
-import           Data.Map              (Map)
 import           Data.Maybe            (maybe)
 
 import           System.IO.Temp        (emptySystemTempFile)
-
 import           Control.Monad         (forM, forever)
-
-import           Pipes
-import           Pipes.Prelude         (fold, take)
 
 -- [ Configuration section ]
 

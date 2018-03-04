@@ -14,8 +14,6 @@ import qualified Data.ByteString          as BS
 import           Data.ByteString.Char8    (unpack)
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Text.Encoding       (decodeUtf8)
-import           Data.Text.IO             (hGetContents)
 import           Data.Time.Clock          (NominalDiffTime, UTCTime,
                                            diffUTCTime, getCurrentTime)
 import           System.Exit              (ExitCode (..))

@@ -7,10 +7,7 @@ module Reagan.Generator
 import           Control.Monad         (forever)
 import           Data.ByteString       (ByteString)
 import           Data.ByteString.Char8 (unpack)
-import           Data.Text             (Text)
-import           Data.Text.Encoding
 import           Data.Time.Clock       (NominalDiffTime, diffUTCTime)
-import           Pipes
 import           Safe                  (headMay, tailMay)
 import           System.IO             (FilePath)
 import           System.IO.Temp        (writeSystemTempFile)
