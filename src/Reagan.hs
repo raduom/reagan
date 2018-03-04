@@ -16,8 +16,11 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Time.Clock          (NominalDiffTime, UTCTime,
                                            diffUTCTime, getCurrentTime)
+import           System.Directory         (getCurrentDirectory,
+                                           setCurrentDirectory)
 import           System.Exit              (ExitCode (..))
 import           System.IO                (Handle, hClose)
+import           System.IO.Temp           (withSystemTempDirectory)
 import           System.Process           (CreateProcess (..),
                                            ProcessHandle (..), StdStream (..),
                                            callProcess, getProcessExitCode,
@@ -77,6 +80,16 @@ onlyResult :: ((ExecutionResult -> IO (Maybe ExecutionResult))
             -> IO ExecutionResult
 onlyResult runCmd = snd <$> runCmd (return . Just)
 
+withinTemporaryDirectory :: IO a -> IO a
+withinTemporaryDirectory action =
+  withSystemTempDirectory "execute-" $ \temporaryDirectory -> do
+    initialDirectory <- getCurrentDirectory
+    setCurrentDirectory temporaryDirectory
+    actionResult <- action
+    setCurrentDirectory initialDirectory
+    return actionResult
+
+
 execute :: ExecutionConfig
         -> (ExecutionResult -> IO a)
         -> IO (a, ExecutionResult)
@@ -85,27 +98,25 @@ execute cfg processResult = do
       args       = ecArguments cfg
       timeout    = ecTimeout cfg
   putStrLn $ "Running: " ++ executable ++ " " ++ show args
-  startExecution <- getCurrentTime
-  withCreateProcess
-    (proc executable (map unpack args)) { std_out = CreatePipe, std_err = CreatePipe }
-    (\_ (Just stdout) (Just stderr) ph -> do
-        forkIO $ do
-          threadDelay (timeout * 1000000)
-          pid <- getPid ph
-          forM_ pid $
-            \p -> do
-              putStrLn $ "Killing process: " ++ show p
-              spawnProcess "rkill" ["-9", show p] >>= waitForProcess
-        (out, err) <- readProcessStream ph (stdout, stderr)
-        waitForProcess ph
-        finishedExecution <- getCurrentTime
-        let er = ExecutionResult { erOutput = out
-                                 , erError  = err
-                                 , erStart = startExecution
-                                 , erFinished = finishedExecution
-                                 , erConfig = cfg
-                                 }
-        (\r -> (r, er)) <$> processResult er)
-
-
-
+  withinTemporaryDirectory $ do
+    startExecution <- getCurrentTime
+    withCreateProcess
+      (proc executable (map unpack args)) { std_out = CreatePipe, std_err = CreatePipe }
+      (\_ (Just stdout) (Just stderr) ph -> do
+          forkIO $ do
+            threadDelay (timeout * 1000000)
+            pid <- getPid ph
+            forM_ pid $
+              \p -> do
+                putStrLn $ "Killing process: " ++ show p
+                spawnProcess "rkill" ["-9", show p] >>= waitForProcess
+          (out, err) <- readProcessStream ph (stdout, stderr)
+          waitForProcess ph
+          finishedExecution <- getCurrentTime
+          let er = ExecutionResult { erOutput = out
+                                   , erError  = err
+                                   , erStart = startExecution
+                                   , erFinished = finishedExecution
+                                   , erConfig = cfg
+                                   }
+          (\r -> (r, er)) <$> processResult er)
