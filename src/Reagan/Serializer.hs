@@ -1,4 +1,9 @@
 module Reagan.Serializer ( serialize
+                         , tplDirectoryName
+                         , tplGeneratorOutput
+                         , tplProgram
+                         , tplCompilerOutput
+                         , tplExecutionOutput
                          )where
 
 import           Control.Monad    (when)
@@ -19,6 +24,12 @@ data DivergenceReport =
                    , drWrongChecksum     :: [(String, Int)] -- ^ Compiler tags and divergent checksums.
                    } deriving (Show, Eq)
 
+tplDirectoryName = "csmith_seed_"
+tplGeneratorOutput = "generator.out"
+tplProgram = "program.c"
+tplCompilerOutput = "_compiler.out"
+tplExecutionOutput = "_execution.out"
+
 isDivergent :: DivergenceReport -> Bool
 isDivergent DivergenceReport { drFailedCompilation = [], drWrongChecksum = [] } = False
 isDivergent _ = True
@@ -31,10 +42,10 @@ serialize (prg, rest) = do
   case gpSeed prg of
     Nothing -> error "Program generation failed"
     Just seed -> do
-      let rootPath = cwd </> "csmith_seed_" ++ show seed
+      let rootPath = cwd </> tplDirectoryName ++ show seed
       createDirectory rootPath
-      writeFile (rootPath </> "generator.out") (show prg)
-      copyFile (gpProgramPath prg) (rootPath </> "program.c")
+      writeFile (rootPath </> tplGeneratorOutput) (show prg)
+      copyFile (gpProgramPath prg) (rootPath </> tplProgram)
       removeFile (gpProgramPath prg)
       mapM_ (serializeC rootPath) rest
       let report = DivergenceReport { drFailedCompilation = getFailedComputations rest
@@ -48,9 +59,9 @@ serializeC :: FilePath
            -> IO ()
 serializeC rootPath (compiledProgram, rest) = do
   let prefix = cpCompilerTag compiledProgram
-  writeFile (rootPath </> prefix ++ "_compiler.out") (show compiledProgram)
+  writeFile (rootPath </> prefix ++ tplCompilerOutput) (show compiledProgram)
   forM_ rest $
-      writeFile (rootPath </> prefix ++ "_execution.out") . show
+      writeFile (rootPath </> prefix ++ tplExecutionOutput) . show
   forM_ (cpExecutablePath compiledProgram) removeFile
 
 getFailedComputations :: [(CompiledProgram, Maybe ExecutionWithChecksum)]

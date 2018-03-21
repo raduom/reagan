@@ -26,6 +26,7 @@ dependencies:
 - directory
 - bytestring
 - pcre-light
+- pcre-heavy
 - safe
 - time
 - filepath

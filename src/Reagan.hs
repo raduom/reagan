@@ -37,13 +37,13 @@ getPid ph = SPI.withProcessHandle ph go
 
 data ExecutionConfig =
   ExecutionConfig { ecCommand   :: FilePath
-                  , ecArguments :: [BS.ByteString]
+                  , ecArguments :: [String]
                   , ecTimeout   :: Int
                   } deriving (Eq, Show)
 
 data ExecutionResult =
-  ExecutionResult { erOutput   :: BS.ByteString
-                  , erError    :: BS.ByteString
+  ExecutionResult { erOutput   :: String
+                  , erError    :: String
                   , erStart    :: UTCTime
                   , erFinished :: UTCTime
                   , erConfig   :: ExecutionConfig
@@ -101,7 +101,7 @@ execute cfg processResult = do
   withinTemporaryDirectory $ do
     startExecution <- getCurrentTime
     withCreateProcess
-      (proc executable (map unpack args)) { std_out = CreatePipe, std_err = CreatePipe }
+      (proc executable args) { std_out = CreatePipe, std_err = CreatePipe }
       (\_ (Just stdout) (Just stderr) ph -> do
           forkIO $ do
             threadDelay (timeout * 1000000)
@@ -113,8 +113,8 @@ execute cfg processResult = do
           (out, err) <- readProcessStream ph (stdout, stderr)
           waitForProcess ph
           finishedExecution <- getCurrentTime
-          let er = ExecutionResult { erOutput = out
-                                   , erError  = err
+          let er = ExecutionResult { erOutput = unpack out
+                                   , erError  = unpack err
                                    , erStart = startExecution
                                    , erFinished = finishedExecution
                                    , erConfig = cfg

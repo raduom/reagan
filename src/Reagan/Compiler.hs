@@ -6,7 +6,7 @@ module Reagan.Compiler ( CompiledProgram(..)
                        ) where
 
 import           Control.Monad         (when)
-import           Data.ByteString.Char8 (ByteString, pack)
+import           Data.ByteString.Char8 (ByteString, pack, unpack)
 import           Data.Time.Clock       (NominalDiffTime, diffUTCTime)
 import           System.Directory      (doesFileExist, getPermissions,
                                         setOwnerExecutable, setPermissions, getFileSize)
@@ -17,9 +17,9 @@ import           Reagan.Generator
 
 data CompiledProgram =
    CompiledProgram { cpTimeout        :: Int              -- ^ Timeout used for compilation
-                   , cpVersion        :: ByteString       -- ^ Version information
-                   , cpOutput         :: ByteString       -- ^ Compiler output
-                   , cpError          :: ByteString       -- ^ Compiler errors
+                   , cpVersion        :: String       -- ^ Version information
+                   , cpOutput         :: String       -- ^ Compiler output
+                   , cpError          :: String       -- ^ Compiler errors
                    , cpRunningTime    :: NominalDiffTime  -- ^ Running time
                    , cpExecutablePath :: Maybe FilePath   -- ^ Compiler path
                    , cpCompilerTag    :: String           -- ^ Compiler tag
@@ -63,14 +63,15 @@ compileProgram compiler prg = do
     programPath = gpProgramPath prg
     compilerOutput = cdCompilerOutput compiler
 
-applyTemplate :: FilePath -> FilePath -> [ByteString] -> [ByteString]
+applyTemplate :: FilePath -> FilePath -> [String] -> [String]
 applyTemplate generatedProgram executable =
-  map $ (\arg -> if arg == "##PROGRAM##" then pack generatedProgram else arg) . (\arg -> if arg == "##EXECUTABLE##" then pack executable else arg)
+  map $ (\arg -> if arg == "##PROGRAM##" then generatedProgram else arg) .
+        (\arg -> if arg == "##EXECUTABLE##" then executable else arg)
 
 mkCompilerDefinition :: String       -- ^ Compiler tag
                      -> FilePath     -- ^ Compiler command
-                     -> [ByteString] -- ^ Version fetching arguments
-                     -> [ByteString] -- ^ Compilation arguments
+                     -> [String]     -- ^ Version fetching arguments
+                     -> [String]     -- ^ Compilation arguments
                      -> Int          -- ^ Compilation Timeout
                      -> CompilerDefinition
 mkCompilerDefinition tag cpath versionArgs compileArgs compilationTimeout =

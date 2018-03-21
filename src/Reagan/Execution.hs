@@ -2,7 +2,7 @@
 module Reagan.Execution where
 
 import           Data.ByteString       (ByteString)
-import           Data.ByteString.Char8 (unpack)
+import           Data.ByteString.Char8 (pack, unpack)
 import           Data.Maybe            (mapMaybe)
 import           Data.Time.Clock       (NominalDiffTime)
 import           Safe                  (headMay, tailMay)
@@ -14,8 +14,8 @@ import           Reagan.Compiler
 
 data ExecutionWithChecksum =
   ExecutionWithChecksum { ewcTimeout        :: Int             -- ^ Timeout used for execution
-                        , ewcOutput         :: ByteString      -- ^ Execution output
-                        , ewcError          :: ByteString      -- ^ Execution errors
+                        , ewcOutput         :: String      -- ^ Execution output
+                        , ewcError          :: String      -- ^ Execution errors
                         , ewcChecksum       :: Maybe Int       -- ^ Execution checksum
                         , ewcRunningTime    :: NominalDiffTime -- ^ Running time
                         , ewcExecutablePath :: FilePath        -- ^ Path to executable
@@ -33,9 +33,9 @@ executeProgram cfg =
                                    , ewcExecutablePath = ecCommand cfg
                                    }
 
-parseChecksum :: ByteString -> Maybe Int
+parseChecksum :: String -> Maybe Int
 parseChecksum input = do
-  checksum <- match reChecksum input [] >>= tailMay >>= headMay
+  checksum <- match reChecksum (pack input) [] >>= tailMay >>= headMay
   readMaybe $ "0x" ++ unpack checksum
   where
     reChecksum = compile "checksum = ([0-9A-F]+)" []

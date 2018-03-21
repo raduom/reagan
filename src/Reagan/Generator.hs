@@ -6,7 +6,7 @@ module Reagan.Generator
 
 import           Control.Monad         (forever)
 import           Data.ByteString       (ByteString)
-import           Data.ByteString.Char8 (unpack)
+import           Data.ByteString.Char8 (unpack, pack)
 import           Data.Time.Clock       (NominalDiffTime, diffUTCTime)
 import           Safe                  (headMay, tailMay)
 import           System.IO             (FilePath)
@@ -19,9 +19,9 @@ import           Reagan
 data GeneratedProgram =
   GeneratedProgram { gpTimeout     :: Int               -- ^ Timeout used for generation (seconds)
                    , gpSeed        :: Maybe Integer     -- ^ Generator seed
-                   , gpArguments   :: [ByteString]      -- ^ Generator arguments
-                   , gpVersion     :: ByteString        -- ^ Version Information
-                   , gpOptions     :: Maybe ByteString  -- ^ Generator options (parsed from output)
+                   , gpArguments   :: [String]      -- ^ Generator arguments
+                   , gpVersion     :: String        -- ^ Version Information
+                   , gpOptions     :: Maybe String  -- ^ Generator options (parsed from output)
                    , gpProgramPath :: FilePath          -- ^ Path to generator program
                    , gpRunningTime :: NominalDiffTime   -- ^ Running time
                    } deriving (Show, Eq)
@@ -38,7 +38,7 @@ generateProgram cfg = fst <$> execute cfg generateProgram'
 
 generateProgram' :: ExecutionResult -> IO GeneratedProgram
 generateProgram' r = do
-  prgPath <- writeSystemTempFile generatedFileTemplate (unpack output)
+  prgPath <- writeSystemTempFile generatedFileTemplate output
   versionOutput <- getVersionOutput
   let runningTime = diffUTCTime (erStart r) (erFinished r)
   return
@@ -55,13 +55,13 @@ generateProgram' r = do
     cfg              = erConfig r
     reOptions = compile "\\s\\*\\sOptions:\\s*(.+)\\s*$" [multiline]
     reSeed = compile "\\s\\*\\sSeed:\\s+(\\d+)" []
-    getVersionOutput :: IO ByteString
+    getVersionOutput :: IO String
     getVersionOutput =
       erOutput <$> onlyResult (execute (versionCommand cfg))
-    parseOptions :: ByteString -> Maybe ByteString
+    parseOptions :: String -> Maybe String
     parseOptions prg =
-      match reOptions prg [] >>= tailMay >>= headMay
-    parseSeed :: ByteString -> Maybe Integer
+      unpack <$> (match reOptions (pack prg) [] >>= tailMay >>= headMay)
+    parseSeed :: String -> Maybe Integer
     parseSeed prg = do
-      seed <- match reSeed prg [] >>= tailMay >>= headMay
+      seed <- match reSeed (pack prg) [] >>= tailMay >>= headMay
       readMaybe (unpack seed)
