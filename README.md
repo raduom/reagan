@@ -119,6 +119,7 @@ Another useful information is to find all cases where the KCC compiler did not d
 ```shell
 $ for i in *; do cat $i/kcc_default_*.out | perl -pe 's/\\n/\n/g' | grep -v safe_math > $i/kcc.out ; done
 $ grep -R -L --include kcc.out 'error' *
+$ for i in `cat correct.out | sed 's@/.*$@@g'`; do mv -v $i correct ; done
 ```
 
 ## Design decisions

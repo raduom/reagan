@@ -11,18 +11,20 @@ import           Reagan.Report    (TestResult (..), runReportOnDirectory)
 import           Data.List        (find, isInfixOf)
 import           Data.Maybe       (fromJust, maybe)
 
+import Control.DeepSeq (deepseq)
+
 import Debug.Trace
 
 data CompilerOutput =
-  CompilerOutput { coTag    :: String
-                 , coOutput :: [String]
+  CompilerOutput { coTag    :: !String
+                 , coOutput :: ![String]
                  } deriving (Eq, Show)
 
 data ProgramReport =
-  ProgramReport { prKccOutput      :: [String]
-                , prSeed           :: Integer
-                , prProgram        :: String
-                , prCompilerOutput :: [CompilerOutput]
+  ProgramReport { --prKccOutput      :: [String]
+                {-,-} prSeed           :: !Integer
+               {- , prProgram        :: String
+                , prCompilerOutput :: [CompilerOutput] -}
                 } deriving (Eq, Show)
 
 runReport :: FilePath -> IO [ProgramReport]
@@ -31,19 +33,19 @@ runReport = runReportOnDirectory accumulateReport []
 accumulateReport :: [ProgramReport]
                  -> TestResult
                  -> [ProgramReport]
-accumulateReport acc result =
+accumulateReport acc result = result `seq` acc `seq`
   let output = getKccOutput (trCompilerOutput result)
-  in  if null output
-      then acc
-      else processResult result : acc
+  in acc `seq`  if null output
+                then acc
+                else processResult result : acc
 
 processResult :: TestResult
               -> ProgramReport
 processResult result =
-  ProgramReport { prKccOutput = getKccOutput $ trCompilerOutput result
-                , prSeed = fromJust $ gpSeed $ trGeneratorOutput result
-                , prProgram = trProgram result
-                , prCompilerOutput = map (convert . fst) $ trCompilerOutput result
+  ProgramReport { --prKccOutput = getKccOutput $ trCompilerOutput result
+                {-,-} prSeed = fromJust $ gpSeed $ trGeneratorOutput result
+{-                , prProgram = trProgram result
+                , prCompilerOutput = map (convert . fst) $ trCompilerOutput result-}
                 }
   where
     convert cp = CompilerOutput (cpCompilerTag cp) (lines $ cpError cp)

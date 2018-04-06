@@ -9,16 +9,18 @@ import           Safe                  (headMay, tailMay)
 import           Text.Read             (readMaybe)
 import           Text.Regex.PCRE.Light (Regex, compile, match)
 
+import Control.DeepSeq (NFData(..), deepseq)
+
 import           Reagan
 import           Reagan.Compiler
 
 data ExecutionWithChecksum =
-  ExecutionWithChecksum { ewcTimeout        :: Int             -- ^ Timeout used for execution
-                        , ewcOutput         :: String      -- ^ Execution output
-                        , ewcError          :: String      -- ^ Execution errors
-                        , ewcChecksum       :: Maybe Int       -- ^ Execution checksum
-                        , ewcRunningTime    :: NominalDiffTime -- ^ Running time
-                        , ewcExecutablePath :: FilePath        -- ^ Path to executable
+  ExecutionWithChecksum { ewcTimeout        :: !Int             -- ^ Timeout used for execution
+                        , ewcOutput         :: !String      -- ^ Execution output
+                        , ewcError          :: !String      -- ^ Execution errors
+                        , ewcChecksum       :: !(Maybe Int)       -- ^ Execution checksum
+                        , ewcRunningTime    :: !NominalDiffTime -- ^ Running time
+                        , ewcExecutablePath :: !FilePath        -- ^ Path to executable
                     } deriving (Show, Eq)
 
 executeProgram :: ExecutionConfig -> IO ExecutionWithChecksum

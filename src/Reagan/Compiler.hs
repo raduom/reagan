@@ -12,17 +12,19 @@ import           System.Directory      (doesFileExist, getPermissions,
                                         setOwnerExecutable, setPermissions, getFileSize)
 import           System.IO.Temp        (emptySystemTempFile)
 
+import Control.DeepSeq (NFData(..), deepseq)
+
 import           Reagan
 import           Reagan.Generator
 
 data CompiledProgram =
-   CompiledProgram { cpTimeout        :: Int              -- ^ Timeout used for compilation
-                   , cpVersion        :: String       -- ^ Version information
-                   , cpOutput         :: String       -- ^ Compiler output
-                   , cpError          :: String       -- ^ Compiler errors
-                   , cpRunningTime    :: NominalDiffTime  -- ^ Running time
-                   , cpExecutablePath :: Maybe FilePath   -- ^ Compiler path
-                   , cpCompilerTag    :: String           -- ^ Compiler tag
+   CompiledProgram { cpTimeout        :: !Int              -- ^ Timeout used for compilation
+                   , cpVersion        :: !String       -- ^ Version information
+                   , cpOutput         :: !String       -- ^ Compiler output
+                   , cpError          :: !String       -- ^ Compiler errors
+                   , cpRunningTime    :: !NominalDiffTime  -- ^ Running time
+                   , cpExecutablePath :: !(Maybe FilePath)   -- ^ Compiler path
+                   , cpCompilerTag    :: !String           -- ^ Compiler tag
                    } deriving (Show, Eq)
 
 data CompilerDefinition =

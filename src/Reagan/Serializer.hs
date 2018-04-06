@@ -20,8 +20,8 @@ import           Reagan.Execution
 import           Reagan.Generator
 
 data DivergenceReport =
-  DivergenceReport { drFailedCompilation :: [String]        -- ^ Compiler tags that failed compilation.
-                   , drWrongChecksum     :: [(String, Int)] -- ^ Compiler tags and divergent checksums.
+  DivergenceReport { drFailedCompilation :: ![String]        -- ^ Compiler tags that failed compilation.
+                   , drWrongChecksum     :: ![(String, Int)] -- ^ Compiler tags and divergent checksums.
                    } deriving (Show, Eq)
 
 tplDirectoryName = "csmith_seed_"
