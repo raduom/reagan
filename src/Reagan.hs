@@ -106,8 +106,7 @@ execute cfg processResult = do
             threadDelay (timeout * 1000000)
             pid <- getPid ph
             forM_ pid $
-              \p -> do
-                putStrLn $ "Killing process: " ++ show p
+              \p ->
                 spawnProcess "rkill" ["-9", show p] >>= waitForProcess
           (out, err) <- readProcessStream ph (stdout, stderr)
           waitForProcess ph
