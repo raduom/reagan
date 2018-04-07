@@ -97,7 +97,6 @@ execute cfg processResult = do
   let executable = ecCommand cfg
       args       = ecArguments cfg
       timeout    = ecTimeout cfg
-  putStrLn $ "Running: " ++ executable ++ " " ++ show args
   withinTemporaryDirectory $ do
     startExecution <- getCurrentTime
     withCreateProcess
