@@ -58,7 +58,7 @@ readProcessStream :: ProcessHandle
 readProcessStream ph (out, err) = go (mempty, mempty)
   where
     go (outAcc, errAcc) = do
-      threadDelay (100 * 1000)
+      threadDelay (500 * 1000)
       bsOut <- BS.hGetNonBlocking out (64 * 1024)
       bsErr <- BS.hGetNonBlocking err (64 * 1024)
       let (outAcc', errAcc') = (outAcc <> bsOut, errAcc <> bsErr)

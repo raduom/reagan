@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE QuasiQuotes        #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -47,14 +45,13 @@ data TestResult =
   TestResult { trGeneratorOutput :: !GeneratedProgram
              , trProgram :: !String
              , trCompilerOutput :: ![(CompiledProgram, Maybe ExecutionWithChecksum)]
-             } deriving (Show, Eq, Generic)
+             } deriving (Show, Eq)
 
 runReportOnDirectory :: (a -> TestResult -> a) -> a -> FilePath -> IO a
 runReportOnDirectory reportFold report reportDir = assertIsDirectory reportDir >> do
   accM <- newMVar report
   reports <- filter (isPrefixOf "csmith_seed") <$> listDirectory reportDir
-  runEffect $ for (each (take 2000 reports)) $ \location -> do
---  runEffect $ for (each reports) $ \location -> do
+  runEffect $ for (each reports) $ \location -> do
     lift $ putStrLn $ "Processing: " ++ location
     acc <- lift $ takeMVar accM
     testResult <- lift $ parseResult (reportDir </> location)
