@@ -42,9 +42,7 @@ executables:
     main:                Main
     source-dirs:         app/reagan
     ghc-options:
-    - -threaded
     - -rtsopts
-    - -with-rtsopts=-N
     - -O2
     dependencies:
     - reagan
@@ -52,9 +50,7 @@ executables:
     main:                Main
     source-dirs:         app/report
     ghc-options:
-    - -threaded
     - -rtsopts
-    - -with-rtsopts=-N
     - -O2
     dependencies:
     - reagan
