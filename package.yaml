@@ -33,6 +33,7 @@ dependencies:
 - filepath
 - strict
 - deepseq
+- transformers
 
 library:
   source-dirs: src

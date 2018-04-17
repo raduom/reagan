@@ -7,12 +7,16 @@ import           Reagan.Execution
 import           Reagan.Generator
 import           Reagan.Serializer
 
-import           Data.ByteString.Char8 (ByteString, pack)
+import           Data.ByteString.Char8     (ByteString, pack)
 import           Data.Either
-import           Data.Maybe            (maybe)
+import           Data.Maybe                (fromJust, maybe)
 
-import           System.IO.Temp        (emptySystemTempFile)
-import           Control.Monad         (forM, forever)
+import           Control.Monad             (forM, forever, mzero)
+import           Control.Monad.IO.Class    (liftIO)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
+import           System.Directory          (doesDirectoryExist)
+import           System.IO.Temp            (emptySystemTempFile)
 
 -- [ Configuration section ]
 
@@ -40,13 +44,17 @@ generatorTimeout = 10
 -- [ Protocol Section ]
 
 singleTest :: ExecutionConfig
-           -> IO (GeneratedProgram
-                          , [(CompiledProgram, Maybe ExecutionWithChecksum)])
-singleTest cfg =
-  generateProgram cfg >>= (
-    \generatedProgram -> do
-      testResults <- mapM (executeWithCompiler generatedProgram) compilerDefinitions
-      return (generatedProgram, testResults))
+           -> MaybeT IO (GeneratedProgram
+                         , [(CompiledProgram, Maybe ExecutionWithChecksum)])
+singleTest cfg = do
+  generatedProgram <- lift $ generateProgram cfg
+  seed <- maybe mzero pure (gpSeed generatedProgram)
+  testExists <- liftIO $ doesDirectoryExist (tplDirectoryName ++ show seed)
+  if testExists
+    then mzero
+    else do
+      testResults <- lift $ mapM (executeWithCompiler generatedProgram) compilerDefinitions
+      return (generatedProgram, testResults)
 
 executeWithCompiler :: GeneratedProgram
                     -> CompilerDefinition
@@ -63,8 +71,9 @@ executeWithCompiler generatedProgram compilerDefinition = do
 main :: IO ()
 main =
   forever $ do
-    result <- singleTest ExecutionConfig { ecCommand = "csmith"
+    result <- runMaybeT $
+              singleTest ExecutionConfig { ecCommand = "csmith"
                                          , ecArguments = ["--no-packed-struct"]
                                          , ecTimeout = generatorTimeout
                                          }
-    serialize result
+    maybe (pure ()) serialize result
