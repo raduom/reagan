@@ -117,7 +117,7 @@ $ grep -R -v --include divergence.info 'drFailedCompilation = \["ccomp_default"\
 Another useful information is to find all cases where the KCC compiler did not detect any errors while compiling and executing.
 
 ```shell
-$ for i in *; do cat $i/kcc_default_*.out | perl -pe 's/\\n/\n/g' | grep -v safe_math > $i/kcc.out ; done
+$ ls | parallel -j+0 --progress "cat {}/kcc_default_*.out | tr '\\n' '\n' | grep -v safe_math > {}/kcc.out"
 $ grep -R -L --include kcc.out 'error' *
 $ for i in `cat correct.out | sed 's@/.*$@@g'`; do mv -v $i correct ; done
 ```
