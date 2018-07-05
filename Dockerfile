@@ -22,14 +22,14 @@ RUN wget https://embed.cs.utah.edu/csmith/csmith-2.3.0.tar.gz \
  && wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin \
  && apt-get install unzip \
  && opam init \
- && opam switch 4.05.0 \
+ && opam switch 4.06.1 \
  && eval `opam config env` \
- && opam install coq=8.7.1 \
+ && opam install coq=8.8.0 \
  && opam install menhir 
 
-RUN wget http://compcert.inria.fr/release/compcert-3.2.tgz \
- && tar xzvf compcert-3.2.tgz \
- && cd CompCert-3.2 \
+RUN wget https://github.com/AbsInt/CompCert/archive/master.zip \
+ && unzip master.zip \
+ && cd CompCert-master \
  && eval `opam config env` \
  && ./configure x86_64-linux \
  && make all \
