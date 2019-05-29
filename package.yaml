@@ -35,6 +35,7 @@ dependencies:
 - deepseq
 - transformers
 - shelly
+- megaparsec
 
 library:
   source-dirs: src

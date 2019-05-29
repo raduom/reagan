@@ -1,15 +1,16 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 WORKDIR /root
 
 RUN apt-get update \
- && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef python-jinja2 python-pygments software-properties-common sudo vim git m4 clang pkg-config libpcre3-dev unzip pslist \
+ && apt-get -y install curl build-essential diffutils libuuid-tiny-perl libxml-libxml-perl libstring-escape-perl libgetopt-declare-perl opam libgmp-dev libmpfr-dev libffi-dev coreutils unifdef wget python-jinja2 python-pygments software-properties-common sudo vim git m4 clang pkg-config libpcre3-dev unzip pslist \
  && add-apt-repository ppa:avsm/ppa -y \
- && add-apt-repository ppa:webupd8team/java -y \
+# && add-apt-repository ppa:webupd8team/java -y \
  && apt-get update \
- && echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections \
- && echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections \
- && apt-get install -y oracle-java8-installer oracle-java8-set-default sudo \
+ && apt-get install openjdk-8-jdk -y \
+# && echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections \
+# && echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections \
+# && apt-get install -y oracle-java8-installer oracle-java8-set-default sudo \
  && wget -O rv-match.jar https://runtimeverification.com/match/download/linux \
  && printf "\n1\nY\n1\n" | java -jar rv-match.jar \
  && rm rv-match.jar 
