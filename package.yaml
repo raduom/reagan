@@ -36,6 +36,7 @@ dependencies:
 - transformers
 - shelly
 - megaparsec
+- parser-combinators
 
 library:
   source-dirs: src
@@ -60,7 +61,7 @@ executables:
 
 tests:
   reagan-test:
-    main:                Spec.hs
+    main:                Parser.hs
     source-dirs:         test
     ghc-options:
     - -threaded
@@ -68,3 +69,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - reagan
+    - tasty
+    - tasty-golden
+    - Glob
