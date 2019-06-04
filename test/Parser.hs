@@ -24,12 +24,12 @@ parse parser file = do
   filename <- findGoldenInput  file
   result   <- parseFile parser filename
   case result of
-           Left err -> putStrLn (errorBundlePretty err) >> (pure LBS.empty)
+           Left err -> putStrLn (errorBundlePretty err) >> pure LBS.empty
            Right cc -> pure (LC8.pack (show cc))
 
 findGoldenInput :: String -> IO FilePath
-findGoldenInput filename = do
-  (head . head) <$> globDir [compile filename] "test/data/parser"
+findGoldenInput filename =
+  head . head <$> globDir [compile filename] "test/data/parser"
 
 kccTests :: IO TestTree
 kccTests =

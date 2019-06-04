@@ -13,6 +13,7 @@ import qualified Data.ByteString.Lazy.Char8 as LC8 hiding (empty)
 import Data.Void (Void)
 import Data.Word (Word8)
 import Data.Functor (($>))
+import Data.Maybe (fromMaybe)
 
 data Location = Location
   { lcFilename :: String
@@ -20,7 +21,7 @@ data Location = Location
   , lcColumn :: Integer
   } deriving (Show)
 
-data Severity = Error | Warning deriving (Show)
+data Severity = Error | Note | Warning deriving (Show)
 
 data Reference = Reference
   { rName :: String
@@ -66,7 +67,8 @@ word8ToString = LC8.unpack . pack
 
 location :: Parser Location
 location = do
-  void (opt functionLocation)
+  void $ tryOptional functionLocation
+  void $ tryOptional header
   filename   <- word8ToString <$>
                   someTill asciiChar (symbol ":")
   lineNumber <- L.decimal
@@ -77,8 +79,9 @@ location = do
 
 severity :: Parser Severity
 severity =
-  string "error" $> Error <|>
-    string "warning" $> Warning
+  (string "error" $> Error
+  <|> string "warning" $> Warning
+  <|> string "note" $> Note) <* symbol ":"
 
 reference :: Parser Reference
 reference = do
@@ -89,19 +92,15 @@ reference = do
   pure $ Reference name code sections
 
 section :: Parser String
-section = do
-  void (string "see")
-  word8ToString <$> lexeme (someTill printChar eol)
+section = string "see" >> toNewline
 
 message :: Parser Message
 message = do
   loc <- location
   sev <- severity
-  void (symbol ":")
-  msg <- word8ToString <$> someTill printChar newline
-  void (many newline)
-  ref <- Left <$> try reference <|>
-           Right . word8ToString <$> someTill printChar newline
+  msg <- toNewline
+  ref <- Left <$> try (lexeme reference) <|>
+           Right <$> codeSnippet
   return $ Message
     { mLocation = loc
     , mSeverity = sev
@@ -109,8 +108,9 @@ message = do
     , mReference  = ref
     }
 
-opt :: Parser a -> Parser (Maybe a)
-opt p = try (Just <$> p) <|> pure Nothing
+codeSnippet :: Parser String
+codeSnippet =
+  lexeme $ tryWithDefault "" $ toNewline <* string "^"
 
 functionLocation :: Parser String
 functionLocation = do
@@ -121,6 +121,21 @@ functionLocation = do
   void (symbol ":")
   pure name
 
+header :: Parser ()
+header = do
+  void $ string "In file"
+  void toNewline
+  void $ many (string "from" >> toNewline)
+  void $ tryOptional (manyTill printChar (string "At top level:"))
+
+tryOptional :: Parser a -> Parser (Maybe a)
+tryOptional p = try (Just <$> p) <|> pure Nothing
+
+tryWithDefault :: a -> Parser a -> Parser a
+tryWithDefault d p = fromMaybe d <$> tryOptional p
+
+toNewline :: Parser String
+toNewline = word8ToString <$> lexeme (someTill printChar eol)
 
 parseCompilation :: Parser [Message]
-parseCompilation = many (lexeme message)
+parseCompilation = many (lexeme message) <* eof
