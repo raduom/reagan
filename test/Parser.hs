@@ -11,7 +11,7 @@ import System.FilePath.Glob
 import qualified Data.ByteString.Lazy.Char8 as LC8
 
 import Reagan.Query (parseFile)
-import Reagan.Query.KCC (parseCompilation)
+import Reagan.Query.KCC (parseCompilation, parseExecution)
 
 main :: IO ()
 main = defaultMain =<< kccTests
@@ -37,4 +37,9 @@ kccTests =
     [ goldenVsString
         "Parse compilation output"
         "test/data/parser/kcc_compile.txt.out"
-        (parse parseCompilation "kcc_compile.txt") ]
+        (parse parseCompilation "kcc_compile.txt")
+    , goldenVsString
+        "Parse execution output"
+        "test/data/parser/kcc_exec.txt.out"
+        (parse parseExecution "kcc_exec.txt")
+    ]

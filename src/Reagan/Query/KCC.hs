@@ -1,39 +1,39 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Reagan.Query.KCC where
 
-import Control.Applicative hiding (some, many)
-import Control.Monad
-import Control.Monad.Combinators
-import Text.Megaparsec hiding (State)
-import Text.Megaparsec.Byte
+import           Control.Applicative        hiding (many, some)
+import           Control.Monad
+import           Control.Monad.Combinators
+import           Text.Megaparsec            hiding (State)
+import           Text.Megaparsec.Byte
 import qualified Text.Megaparsec.Byte.Lexer as L
 
-import Data.ByteString.Lazy hiding (empty)
+import           Data.ByteString.Lazy       hiding (empty)
 import qualified Data.ByteString.Lazy.Char8 as LC8 hiding (empty)
-import Data.Void (Void)
-import Data.Word (Word8)
-import Data.Functor (($>))
-import Data.Maybe (fromMaybe)
+import           Data.Functor               (($>))
+import           Data.Maybe                 (fromMaybe)
+import           Data.Void                  (Void)
+import           Data.Word                  (Word8)
 
 data Location = Location
-  { lcFilename :: String
+  { lcFilename   :: String
   , lcLineNumber :: Integer
-  , lcColumn :: Integer
+  , lcColumn     :: Integer
   } deriving (Show)
 
 data Severity = Error | Note | Warning deriving (Show)
 
 data Reference = Reference
-  { rName :: String
-  , rCode :: String
+  { rName     :: String
+  , rCode     :: String
   , rSections :: [String]
   } deriving (Show)
 
-data Message = Message
-  { mLocation  :: Location
-  , mSeverity  :: Severity
-  , mMessage   :: String
-  , mReference :: Either Reference String
+data CompilationMessage = CompilationMessage
+  { cmLocation  :: Location
+  , cmSeverity  :: Severity
+  , cmMessage   :: String
+  , cmReference :: Either Reference String
   } deriving (Show)
 
 data StackFrame = StackFrame
@@ -42,9 +42,9 @@ data StackFrame = StackFrame
   } deriving (Show)
 
 data Execution = Execution
-  { eMessage :: String
-  , eCode    :: String
-  , eStack   :: [StackFrame]
+  { eMessage   :: String
+  , eCode      :: String
+  , eStack     :: [StackFrame]
   , eReference :: Reference
   } deriving (Show)
 
@@ -64,6 +64,15 @@ symbol = L.symbol sc
 
 word8ToString :: [Word8] -> String
 word8ToString = LC8.unpack . pack
+
+tryOptional :: Parser a -> Parser (Maybe a)
+tryOptional p = try (Just <$> p) <|> pure Nothing
+
+tryWithDefault :: a -> Parser a -> Parser a
+tryWithDefault d p = fromMaybe d <$> tryOptional p
+
+toNewline :: Parser String
+toNewline = word8ToString <$> lexeme (someTill printChar eol)
 
 location :: Parser Location
 location = do
@@ -94,18 +103,18 @@ reference = do
 section :: Parser String
 section = string "see" >> toNewline
 
-message :: Parser Message
-message = do
+compilationMessage :: Parser CompilationMessage
+compilationMessage = do
   loc <- location
   sev <- severity
   msg <- toNewline
   ref <- Left <$> try (lexeme reference) <|>
            Right <$> codeSnippet
-  return $ Message
-    { mLocation = loc
-    , mSeverity = sev
-    , mMessage  = msg
-    , mReference  = ref
+  return $ CompilationMessage
+    { cmLocation = loc
+    , cmSeverity = sev
+    , cmMessage  = msg
+    , cmReference  = ref
     }
 
 codeSnippet :: Parser String
@@ -128,14 +137,32 @@ header = do
   void $ many (string "from" >> toNewline)
   void $ tryOptional (manyTill printChar (string "At top level:"))
 
-tryOptional :: Parser a -> Parser (Maybe a)
-tryOptional p = try (Just <$> p) <|> pure Nothing
+parseCompilation :: Parser [CompilationMessage]
+parseCompilation = many (lexeme compilationMessage) <* eof
 
-tryWithDefault :: a -> Parser a -> Parser a
-tryWithDefault d p = fromMaybe d <$> tryOptional p
+-- Execution
 
-toNewline :: Parser String
-toNewline = word8ToString <$> lexeme (someTill printChar eol)
+data ExecutionMessage = ExecutionMessage
+  { emMessage   :: String
+  , emLocation  :: [String]
+  , emReference :: Reference
+  } deriving (Show)
 
-parseCompilation :: Parser [Message]
-parseCompilation = many (lexeme message) <* eof
+executionMessage :: Parser ExecutionMessage
+executionMessage =
+  ExecutionMessage <$> toNewline
+                   <*> errorStack
+                   <*> reference
+
+checksum :: Parser String
+checksum =
+  string "checksum = " *> toNewline
+
+errorStack :: Parser [String]
+errorStack = do
+  void (string "> ")
+  some (string "in" *> toNewline)
+
+parseExecution :: Parser [ExecutionMessage]
+parseExecution =
+  many (try executionMessage) <* checksum <* eof
