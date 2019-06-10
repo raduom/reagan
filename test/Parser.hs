@@ -1,18 +1,18 @@
 module Main where
 
-import Test.Tasty (defaultMain, TestTree, testGroup)
-import Test.Tasty.Golden (goldenVsString, findByExtension)
-import Text.Megaparsec (Parsec)
-import Text.Megaparsec.Error (errorBundlePretty)
-import Data.Void (Void)
-import qualified Data.ByteString.Lazy as LBS
-import System.FilePath (takeBaseName, replaceExtension)
-import System.FilePath.Glob
+import qualified Data.ByteString.Lazy       as LBS
 import qualified Data.ByteString.Lazy.Char8 as LC8
+import           Data.Void                  (Void)
+import           System.FilePath            (replaceExtension, takeBaseName)
+import           System.FilePath.Glob
+import           Test.Tasty                 (TestTree, defaultMain, testGroup)
+import           Test.Tasty.Golden          (findByExtension, goldenVsString)
+import           Text.Megaparsec            (Parsec)
+import           Text.Megaparsec.Error      (errorBundlePretty)
 
-import Reagan.Query (parseFile, loadResult, Result(..))
-import Reagan.Query.KCC (parseCompilation, parseExecution)
-import Reagan.Compiler (CompiledProgram(..))
+import           Reagan.Compiler            (CompiledProgram (..))
+import           Reagan.Query               (Result (..), loadResult, parseFile)
+import           Reagan.Query.KCC           (parseCompilation, parseExecution)
 
 main :: IO ()
 main = defaultMain =<< allTests
@@ -44,14 +44,25 @@ packOutput f a = LC8.pack (f a)
 compilerOutput :: (Result -> String)
 compilerOutput = cpError . rCompiler
 
+compilers :: [String]
+compilers = ["kcc", "clang", "gcc", "ccomp"]
+
 loaderTests :: TestTree
 loaderTests =
-  testGroup "Loader"
+  testGroup "Loader" $
     [ goldenVsString
-      "Loading compilation output"
-      "test/data/loader/kcc_default_compiler.out"
-      (packOutput (show . rCompiler) <$> loadResult "test/data/loader" "kcc_default")
-    ]
+      ("Loading " ++ c ++ " compilation output")
+      ("test/data/loader/" ++ c ++ "_default_compiler.out")
+      (packOutput (show . rCompiler) <$> loadResult "test/data/loader" (c ++ "_default"))
+    | c <- compilers ]
+
+    ++
+
+    [  goldenVsString
+      ("Loading " ++ c ++ " execution output")
+      ("test/data/loader/" ++ c ++ "_default_compiler.out")
+      (packOutput (show . rCompiler) <$> loadResult "test/data/loader" (c ++ "_default"))
+    | c <- compilers ]
 
 kccTests :: TestTree
 kccTests =
