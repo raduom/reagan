@@ -12,9 +12,11 @@ import           Text.Megaparsec.Error      (errorBundlePretty)
 
 import           Reagan.Compiler            (CompiledProgram (..))
 import           Reagan.Generator           (GeneratedProgram (..))
-import           Reagan.Query               (Result (..), loadGenerator,
-                                             loadResult, parseFile, loadDirectory)
+import           Reagan.Query               (Result (..), loadDirectory,
+                                             loadGenerator, loadResult,
+                                             parseFile)
 import           Reagan.Query.KCC           (parseCompilation, parseExecution)
+import           Reagan.Query.UB            (queryUndefinedBehaviours)
 
 main :: IO ()
 main = defaultMain =<< allTests
@@ -50,34 +52,34 @@ loaderTests :: TestTree
 loaderTests =
   testGroup "Loader" $
     [ goldenVsString
-      "Generator output"
-      "test/data/loader/generator.out"
-      (packOutput show
-        <$> loadGenerator "test/data/loader")
+        "Generator output"
+        "test/data/loader/generator.out"
+        (packOutput show
+          <$> loadGenerator "test/data/loader")
     ]
 
     ++
 
     [ goldenVsString
-      (c ++ " compilation output")
-      ("test/data/loader/" ++ c ++ "_compiler.out")
-      (out rCompiler c)
-    | c <- compilers ]
-
-    ++
-
-    [  goldenVsString
-      (c ++ " execution output")
-      ("test/data/loader/" ++ c ++ "_execution.out")
-      (out rExecution c)
+        (c ++ " compilation output")
+        ("test/data/loader/" ++ c ++ "_compiler.out")
+        (out rCompiler c)
     | c <- compilers ]
 
     ++
 
     [ goldenVsString
-      "Multiple results"
-      "test/data/query/loader.out"
-      (packOutput show <$> loadDirectory "test/data/query" compilers)
+        (c ++ " execution output")
+        ("test/data/loader/" ++ c ++ "_execution.out")
+        (out rExecution c)
+    | c <- compilers ]
+
+    ++
+
+    [ goldenVsString
+        "Multiple results"
+        "test/data/query/loader.out"
+        (packOutput show <$> loadDirectory "test/data/query" compilers)
     ]
 
   where
@@ -108,11 +110,10 @@ kccParserTests =
     ]
 
 queryTests :: TestTree
-queryTests = testGroup "Query" [undefinedBehaviours]
-
-undefinedBehaviours :: TestTree
-undefinedBehaviours =
-  testGroup "Undefined behaviours"
-    [
-
+queryTests =
+  testGroup "Query"
+    [ goldenVsString
+        "Undefined behaviours"
+        "test/data/query/ub.out"
+        (packOutput show <$> queryUndefinedBehaviours "test/data/query")
     ]

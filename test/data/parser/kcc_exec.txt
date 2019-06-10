@@ -1099,4 +1099,3 @@ Indeterminate value used in an expression:
         see MISRA-C section 8.9:1 http://rvdoc.org/MISRA-C/8.9
         see MISRA-C section 8.1:3 http://rvdoc.org/MISRA-C/8.1
 
-checksum = 520E9103

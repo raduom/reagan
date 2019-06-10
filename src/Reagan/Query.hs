@@ -76,4 +76,4 @@ parseSeed directory = directory
 
 fixDuration :: String -> String
 fixDuration =
-  gsub [re|= (-?[.\d]+)s|] (\(d:_) -> ("= " ++ d :: String))
+  gsub [re|= (-?[.\d]+)s|] (\(d:_) -> "= " ++ d :: String)

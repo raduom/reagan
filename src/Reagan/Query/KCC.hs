@@ -19,34 +19,28 @@ data Location = Location
   { lcFilename   :: String
   , lcLineNumber :: Integer
   , lcColumn     :: Integer
-  } deriving (Show)
+  } deriving (Show, Read)
 
-data Severity = Error | Note | Warning deriving (Show)
+data Severity = Error | Note | Warning deriving (Show, Read)
 
 data Reference = Reference
   { rName     :: String
   , rCode     :: String
   , rSections :: [String]
-  } deriving (Show)
+  } deriving (Show, Read)
 
 data CompilationMessage = CompilationMessage
   { cmLocation  :: Location
   , cmSeverity  :: Severity
   , cmMessage   :: String
   , cmReference :: Either Reference String
-  } deriving (Show)
+  } deriving (Show, Read)
 
 data StackFrame = StackFrame
   { sfLocation :: Location
   , sfFunction :: String
-  } deriving (Show)
+  } deriving (Show, Read)
 
-data Execution = Execution
-  { eMessage   :: String
-  , eCode      :: String
-  , eStack     :: [StackFrame]
-  , eReference :: Reference
-  } deriving (Show)
 
 type Parser = Parsec Void ByteString
 
@@ -146,17 +140,13 @@ data ExecutionMessage = ExecutionMessage
   { emMessage   :: String
   , emLocation  :: [String]
   , emReference :: Reference
-  } deriving (Show)
+  } deriving (Show, Read)
 
 executionMessage :: Parser ExecutionMessage
 executionMessage =
   ExecutionMessage <$> toNewline
                    <*> errorStack
                    <*> reference
-
-checksum :: Parser String
-checksum =
-  string "checksum = " *> toNewline
 
 errorStack :: Parser [String]
 errorStack = do
@@ -165,4 +155,4 @@ errorStack = do
 
 parseExecution :: Parser [ExecutionMessage]
 parseExecution =
-  many (try executionMessage) <* checksum <* eof
+  many (try executionMessage) <* eof
