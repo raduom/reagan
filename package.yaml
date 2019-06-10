@@ -50,14 +50,6 @@ executables:
     - -O2
     dependencies:
     - reagan
-  report-exe:
-    main:                Main
-    source-dirs:         app/report
-    ghc-options:
-    - -rtsopts
-    - -O2
-    dependencies:
-    - reagan
 
 tests:
   reagan-test:

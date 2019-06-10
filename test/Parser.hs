@@ -10,11 +10,12 @@ import System.FilePath (takeBaseName, replaceExtension)
 import System.FilePath.Glob
 import qualified Data.ByteString.Lazy.Char8 as LC8
 
-import Reagan.Query (parseFile)
+import Reagan.Query (parseFile, loadResult, Result(..))
 import Reagan.Query.KCC (parseCompilation, parseExecution)
+import Reagan.Compiler (CompiledProgram(..))
 
 main :: IO ()
-main = defaultMain =<< kccTests
+main = defaultMain =<< allTests
 
 parse :: Show a
       => Parsec Void LBS.ByteString a
@@ -31,9 +32,30 @@ findGoldenInput :: String -> IO FilePath
 findGoldenInput filename =
   head . head <$> globDir [compile filename] "test/data/parser"
 
-kccTests :: IO TestTree
+allTests :: IO TestTree
+allTests = pure $ testGroup "Reagan (all)" [parserTests, loaderTests]
+
+parserTests :: TestTree
+parserTests = testGroup "Parser"    [kccTests]
+
+packOutput :: (a -> String) -> a -> LBS.ByteString
+packOutput f a = LC8.pack (f a)
+
+compilerOutput :: (Result -> String)
+compilerOutput = cpError . rCompiler
+
+loaderTests :: TestTree
+loaderTests =
+  testGroup "Loader"
+    [ goldenVsString
+      "Loading compilation output"
+      "test/data/loader/kcc_default_compiler.out"
+      (packOutput (show . rCompiler) <$> loadResult "test/data/loader" "kcc_default")
+    ]
+
+kccTests :: TestTree
 kccTests =
-  pure $ testGroup "KCC"
+  testGroup "KCC"
     [ goldenVsString
         "Parse compilation output"
         "test/data/parser/kcc_compile.txt.out"

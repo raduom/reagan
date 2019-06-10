@@ -1,0 +1,1 @@
+CompiledProgram {cpTimeout = 10, cpVersion = "Ubuntu clang version 3.4-1ubuntu3 (tags/RELEASE_34/final) (based on LLVM 3.4)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\n", cpOutput = "", cpError = "", cpRunningTime = 0.511057s, cpExecutablePath = Just "/tmp/clang_default-17-44686", cpCompilerTag = "clang_default"}
