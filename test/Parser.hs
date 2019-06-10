@@ -11,7 +11,9 @@ import           Text.Megaparsec            (Parsec)
 import           Text.Megaparsec.Error      (errorBundlePretty)
 
 import           Reagan.Compiler            (CompiledProgram (..))
-import           Reagan.Query               (Result (..), loadResult, parseFile)
+import Reagan.Generator (GeneratedProgram(..))
+import           Reagan.Query               (Result (..), loadGenerator,
+                                             loadResult, parseFile)
 import           Reagan.Query.KCC           (parseCompilation, parseExecution)
 
 main :: IO ()
@@ -44,25 +46,43 @@ packOutput f a = LC8.pack (f a)
 compilerOutput :: (Result -> String)
 compilerOutput = cpError . rCompiler
 
-compilers :: [String]
-compilers = ["kcc", "clang", "gcc", "ccomp"]
 
 loaderTests :: TestTree
 loaderTests =
   testGroup "Loader" $
     [ goldenVsString
-      ("Loading " ++ c ++ " compilation output")
+      "Generator output"
+      "test/data/loader/generator.out"
+      (packOutput show
+        <$> loadGenerator "test/data/loader")
+    ]
+
+    ++
+
+    [ goldenVsString
+      (c ++ " compilation output")
       ("test/data/loader/" ++ c ++ "_default_compiler.out")
-      (packOutput (show . rCompiler) <$> loadResult "test/data/loader" (c ++ "_default"))
+      (out (c ++ "_default"))
     | c <- compilers ]
 
     ++
 
     [  goldenVsString
-      ("Loading " ++ c ++ " execution output")
+      (c ++ " execution output")
       ("test/data/loader/" ++ c ++ "_default_compiler.out")
-      (packOutput (show . rCompiler) <$> loadResult "test/data/loader" (c ++ "_default"))
+      (out (c ++ "_default"))
     | c <- compilers ]
+
+  where
+    out :: String -> IO LBS.ByteString
+    out suffix = do
+      generatedProgram <- loadGenerator "test/data/loader"
+      packOutput (show . rCompiler) <$>
+        loadResult "test/data/loader" generatedProgram suffix
+
+    compilers :: [String]
+    compilers = ["kcc", "clang", "gcc", "ccomp"]
+
 
 kccTests :: TestTree
 kccTests =

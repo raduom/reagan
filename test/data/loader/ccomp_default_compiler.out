@@ -1,1 +1,1 @@
-CompiledProgram {cpTimeout = 60, cpVersion = "The CompCert C verified compiler, version 3.2\n", cpOutput = "", cpError = "", cpRunningTime = 0.514522s, cpExecutablePath = Just "/tmp/ccomp_default-17-44687", cpCompilerTag = "ccomp_default"}
+CompiledProgram {cpTimeout = 60, cpVersion = "The CompCert C verified compiler, version 3.2\n", cpOutput = "", cpError = "", cpRunningTime = 3.50754s, cpExecutablePath = Just "/tmp/ccomp_default-66-3746", cpCompilerTag = "ccomp_default"}
