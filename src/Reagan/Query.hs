@@ -20,7 +20,6 @@ data Result = Result
   { rCompiler  :: CompiledProgram
   , rExecution :: ExecutionWithChecksum
   , rGenerator :: GeneratedProgram
-  , rSeed      :: String
   , rProfile   :: String
   } deriving (Show)
 
@@ -45,7 +44,6 @@ loadResult directory generator profile = do
     { rCompiler = compilerOutput
     , rExecution = executionOutput
     , rGenerator = generator
-    , rSeed = parseSeed directory
     , rProfile = profile
     }
   where
