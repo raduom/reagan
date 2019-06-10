@@ -8,7 +8,7 @@ import           Data.Fixed            (Pico)
 import           Data.List             (isPrefixOf)
 import           Data.Time.Clock       (NominalDiffTime)
 import           Data.Void
-import           System.Directory      (listDirectory)
+import           System.Directory      (listDirectory, doesFileExist)
 import           System.FilePath.Posix ((</>))
 import           Text.Megaparsec       hiding (State)
 import           Text.Regex.PCRE.Heavy (Regex, compileM, gsub, re, (=~))
@@ -21,8 +21,8 @@ import           Reagan.Execution      (ExecutionWithChecksum (..))
 import           Reagan.Generator      (GeneratedProgram (..))
 
 data Result = Result
-  { rCompiler  :: CompiledProgram
-  , rExecution :: ExecutionWithChecksum
+  { rCompiler  :: Maybe CompiledProgram
+  , rExecution :: Maybe ExecutionWithChecksum
   , rGenerator :: GeneratedProgram
   , rProfile   :: String
   } deriving (Show)
@@ -51,8 +51,12 @@ loadResult directory generator profile = do
     , rProfile = profile
     }
   where
-    load :: Read a => String -> IO a
-    load suffix = read . fixDuration <$> readFile (directory </> profile ++ suffix)
+    load :: Read a => String -> IO (Maybe a)
+    load suffix = do
+      exists <- doesFileExist (directory </> profile ++ suffix)
+      if exists
+      then Just . read . fixDuration <$> readFile (directory </> profile ++ suffix)
+      else return Nothing
 
 loadDirectory :: FilePath -> [String] -> IO [Result]
 loadDirectory repository profiles = do

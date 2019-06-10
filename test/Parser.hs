@@ -2,6 +2,7 @@ module Main where
 
 import qualified Data.ByteString.Lazy       as LBS
 import qualified Data.ByteString.Lazy.Char8 as LC8
+import           Data.Maybe                 (fromJust)
 import           Data.Void                  (Void)
 import           System.FilePath            (replaceExtension, takeBaseName)
 import           System.FilePath.Glob
@@ -46,7 +47,7 @@ packOutput :: (a -> String) -> a -> LBS.ByteString
 packOutput f a = LC8.pack (f a)
 
 compilerOutput :: (Result -> String)
-compilerOutput = cpError . rCompiler
+compilerOutput = cpError . fromJust . rCompiler
 
 loaderTests :: TestTree
 loaderTests =
@@ -63,7 +64,7 @@ loaderTests =
     [ goldenVsString
         (c ++ " compilation output")
         ("test/data/loader/" ++ c ++ "_compiler.out")
-        (out rCompiler c)
+        (out (fromJust . rCompiler) c)
     | c <- compilers ]
 
     ++
@@ -71,7 +72,7 @@ loaderTests =
     [ goldenVsString
         (c ++ " execution output")
         ("test/data/loader/" ++ c ++ "_execution.out")
-        (out rExecution c)
+        (out (fromJust . rExecution) c)
     | c <- compilers ]
 
     ++

@@ -5,6 +5,7 @@ import qualified Data.ByteString.Lazy.Char8 as LC8
 import           Data.List                  (isPrefixOf)
 import           Data.Void                  (Void)
 import           Data.Word                  (Word8)
+import Data.Maybe (mapMaybe)
 import           Text.Megaparsec            (runParser)
 import           Text.Megaparsec.Error      (ParseErrorBundle (..),
                                              errorBundlePretty)
@@ -26,11 +27,11 @@ data Skim = Skim
 
 queryUndefinedBehaviours :: FilePath -> IO [UndefinedBehaviour]
 queryUndefinedBehaviours repository =
-  concatMap extract . filter (any isUndefinedBehaviour . sMsgs) . map focus
+  concatMap extract . filter (any isUndefinedBehaviour . sMsgs) . mapMaybe focus
     <$> loadDirectory repository ["kcc_default"]
 
-focus :: Result -> Skim
-focus (Result _ execution generator _) =
+focus :: Result -> Maybe Skim
+focus (Result _ (Just execution) generator _) =
   case gpSeed generator of
     Nothing   -> error "No seed found in generator."
     Just seed ->
@@ -38,7 +39,7 @@ focus (Result _ execution generator _) =
            contents     = LC8.pack (ewcError execution)
       in case runParser parseExecution fileLocation contents of
         Left err   -> error $ errorMessage execution err
-        Right msgs -> Skim { sSeed = show seed, sMsgs = msgs }
+        Right msgs -> Just $ Skim { sSeed = show seed, sMsgs = msgs }
   where
     errorMessage :: ExecutionWithChecksum
                  -> ParseErrorBundle BSL.ByteString Void
@@ -48,6 +49,7 @@ focus (Result _ execution generator _) =
       ++ ewcError exec
       ++ "\n with error: \n"
       ++ errorBundlePretty err
+focus _ = Nothing
 
 extract :: Skim -> [UndefinedBehaviour]
 extract (Skim seed msgs) = map extractMessage msgs

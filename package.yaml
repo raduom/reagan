@@ -50,6 +50,14 @@ executables:
     - -O2
     dependencies:
     - reagan
+  ub-query-exe:
+    main:                Main
+    source-dirs:         app/ub-query
+    ghc-options:
+    - -rtsopts
+    - -O2
+    dependencies:
+    - reagan
 
 tests:
   reagan-test:
