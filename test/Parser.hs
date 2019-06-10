@@ -61,27 +61,31 @@ loaderTests =
 
     [ goldenVsString
       (c ++ " compilation output")
-      ("test/data/loader/" ++ c ++ "_default_compiler.out")
-      (out (c ++ "_default"))
+      ("test/data/loader/" ++ c ++ "_compiler.out")
+      (out rCompiler c)
     | c <- compilers ]
 
     ++
 
     [  goldenVsString
       (c ++ " execution output")
-      ("test/data/loader/" ++ c ++ "_default_compiler.out")
-      (out (c ++ "_default"))
+      ("test/data/loader/" ++ c ++ "_execution.out")
+      (out rExecution c)
     | c <- compilers ]
 
   where
-    out :: String -> IO LBS.ByteString
-    out suffix = do
+    out :: (Read a, Show a)
+        => (Result -> a)
+        -> String
+        -> IO LBS.ByteString
+    out extract suffix = do
       generatedProgram <- loadGenerator "test/data/loader"
-      packOutput (show . rCompiler) <$>
+      packOutput (show . extract) <$>
         loadResult "test/data/loader" generatedProgram suffix
 
     compilers :: [String]
-    compilers = ["kcc", "clang", "gcc", "ccomp"]
+    compilers = map (++ "_default")
+                    ["kcc", "clang", "gcc", "ccomp"]
 
 
 kccTests :: TestTree
