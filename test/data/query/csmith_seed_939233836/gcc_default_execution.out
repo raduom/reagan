@@ -1,0 +1,1 @@
+ExecutionWithChecksum {ewcTimeout = 60, ewcOutput = "checksum = ECE7B2BC\n", ewcError = "", ewcChecksum = Just 3974607548, ewcRunningTime = 0.501017s, ewcExecutablePath = "/tmp/gcc_default-66-137016"}

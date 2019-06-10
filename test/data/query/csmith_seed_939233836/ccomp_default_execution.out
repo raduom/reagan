@@ -1,0 +1,1 @@
+ExecutionWithChecksum {ewcTimeout = 60, ewcOutput = "checksum = 4562CF86\n", ewcError = "", ewcChecksum = Just 1164103558, ewcRunningTime = 0.505788s, ewcExecutablePath = "/tmp/ccomp_default-66-137014"}

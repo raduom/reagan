@@ -1,20 +1,24 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE QuasiQuotes        #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Reagan.Query where
 
-import Text.Megaparsec hiding (State)
-import qualified Data.ByteString.Lazy as LBS
-import Data.Void
-import Data.Time.Clock (NominalDiffTime)
-import Data.Fixed (Pico)
-import Data.Bifunctor (first)
-import System.FilePath.Posix ((</>))
-import Text.Regex.PCRE.Heavy (Regex, compileM, gsub, re, (=~))
+import           Data.Bifunctor        (first)
+import           Data.Fixed            (Pico)
+import           Data.List             (isPrefixOf)
+import           Data.Time.Clock       (NominalDiffTime)
+import           Data.Void
+import           System.Directory      (listDirectory)
+import           System.FilePath.Posix ((</>))
+import           Text.Megaparsec       hiding (State)
+import           Text.Regex.PCRE.Heavy (Regex, compileM, gsub, re, (=~))
+import qualified Data.ByteString.Lazy  as LBS
 
-import Reagan.Compiler (CompiledProgram(..))
-import Reagan.Execution (ExecutionWithChecksum(..))
-import Reagan.Generator (GeneratedProgram(..))
+import           Pipes
+
+import           Reagan.Compiler       (CompiledProgram (..))
+import           Reagan.Execution      (ExecutionWithChecksum (..))
+import           Reagan.Generator      (GeneratedProgram (..))
 
 data Result = Result
   { rCompiler  :: CompiledProgram
@@ -50,8 +54,16 @@ loadResult directory generator profile = do
     load :: Read a => String -> IO a
     load suffix = read . fixDuration <$> readFile (directory </> profile ++ suffix)
 
-loadDirectory :: FilePath -> [String] -> [Result]
-loadDirectory = undefined
+loadDirectory :: FilePath -> [String] -> IO [Result]
+loadDirectory repository profiles = do
+  reports <-  filter (isPrefixOf "csmith_seed") <$> listDirectory repository
+  concat  <$> mapM mkReport reports
+  where
+    mkReport :: FilePath -> IO [Result]
+    mkReport localDirectory = do
+      let reportDirectory = repository </> localDirectory
+      generatorOutput <- loadGenerator reportDirectory
+      mapM (loadResult reportDirectory generatorOutput) profiles
 
 parseFile :: Parsec Void LBS.ByteString a
           -> FilePath

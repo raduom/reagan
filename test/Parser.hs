@@ -11,9 +11,9 @@ import           Text.Megaparsec            (Parsec)
 import           Text.Megaparsec.Error      (errorBundlePretty)
 
 import           Reagan.Compiler            (CompiledProgram (..))
-import Reagan.Generator (GeneratedProgram(..))
+import           Reagan.Generator           (GeneratedProgram (..))
 import           Reagan.Query               (Result (..), loadGenerator,
-                                             loadResult, parseFile)
+                                             loadResult, parseFile, loadDirectory)
 import           Reagan.Query.KCC           (parseCompilation, parseExecution)
 
 main :: IO ()
@@ -35,17 +35,16 @@ findGoldenInput filename =
   head . head <$> globDir [compile filename] "test/data/parser"
 
 allTests :: IO TestTree
-allTests = pure $ testGroup "Reagan (all)" [parserTests, loaderTests]
+allTests = pure $ testGroup "Reagan (all)" [parserTests, loaderTests, queryTests]
 
 parserTests :: TestTree
-parserTests = testGroup "Parser"    [kccTests]
+parserTests = testGroup "Parser"    [kccParserTests]
 
 packOutput :: (a -> String) -> a -> LBS.ByteString
 packOutput f a = LC8.pack (f a)
 
 compilerOutput :: (Result -> String)
 compilerOutput = cpError . rCompiler
-
 
 loaderTests :: TestTree
 loaderTests =
@@ -73,6 +72,14 @@ loaderTests =
       (out rExecution c)
     | c <- compilers ]
 
+    ++
+
+    [ goldenVsString
+      "Multiple results"
+      "test/data/query/loader.out"
+      (packOutput show <$> loadDirectory "test/data/query" compilers)
+    ]
+
   where
     out :: (Read a, Show a)
         => (Result -> a)
@@ -87,9 +94,8 @@ loaderTests =
     compilers = map (++ "_default")
                     ["kcc", "clang", "gcc", "ccomp"]
 
-
-kccTests :: TestTree
-kccTests =
+kccParserTests :: TestTree
+kccParserTests =
   testGroup "KCC"
     [ goldenVsString
         "Parse compilation output"
@@ -99,4 +105,14 @@ kccTests =
         "Parse execution output"
         "test/data/parser/kcc_exec.txt.out"
         (parse parseExecution "kcc_exec.txt")
+    ]
+
+queryTests :: TestTree
+queryTests = testGroup "Query" [undefinedBehaviours]
+
+undefinedBehaviours :: TestTree
+undefinedBehaviours =
+  testGroup "Undefined behaviours"
+    [
+
     ]
