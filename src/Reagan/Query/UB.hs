@@ -1,11 +1,12 @@
 module Reagan.Query.UB where
 
+import           Conduit
 import qualified Data.ByteString.Lazy       as BSL
 import qualified Data.ByteString.Lazy.Char8 as LC8
 import           Data.List                  (isPrefixOf)
+import           Data.Maybe                 (mapMaybe)
 import           Data.Void                  (Void)
 import           Data.Word                  (Word8)
-import Data.Maybe (mapMaybe)
 import           Text.Megaparsec            (runParser)
 import           Text.Megaparsec.Error      (ParseErrorBundle (..),
                                              errorBundlePretty)
@@ -25,10 +26,20 @@ data Skim = Skim
   , sMsgs :: [ExecutionMessage]
   } deriving (Show, Read)
 
-queryUndefinedBehaviours :: FilePath -> IO [UndefinedBehaviour]
-queryUndefinedBehaviours repository =
-  concatMap extract . filter (any isUndefinedBehaviour . sMsgs) . mapMaybe focus
-    <$> loadDirectory repository ["kcc_default"]
+runUndefinedBehaviours :: FilePath -> IO [UndefinedBehaviour]
+runUndefinedBehaviours repository = runConduitRes $
+     repositoryStream repository ["kcc_default"]
+  .| queryUndefinedBehaviours
+  .| sinkList
+
+queryUndefinedBehaviours :: (MonadIO m)
+                         => ConduitT Result UndefinedBehaviour m ()
+queryUndefinedBehaviours =
+     mapC getUndefinedBehaviours
+  .| concatC
+
+getUndefinedBehaviours :: Result -> [UndefinedBehaviour]
+getUndefinedBehaviours result = maybe [] extract (focus result)
 
 focus :: Result -> Maybe Skim
 focus (Result _ (Just execution) generator _) =

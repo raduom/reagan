@@ -17,7 +17,7 @@ import           Reagan.Query               (Result (..), loadDirectory,
                                              loadGenerator, loadResult,
                                              parseFile)
 import           Reagan.Query.KCC           (parseCompilation, parseExecution)
-import           Reagan.Query.UB            (queryUndefinedBehaviours)
+import           Reagan.Query.UB            (runUndefinedBehaviours)
 
 main :: IO ()
 main = defaultMain =<< allTests
@@ -110,11 +110,13 @@ kccParserTests =
         (parse parseExecution "kcc_exec.txt")
     ]
 
+
+
 queryTests :: TestTree
 queryTests =
   testGroup "Query"
     [ goldenVsString
         "Undefined behaviours"
         "test/data/query/ub.out"
-        (packOutput show <$> queryUndefinedBehaviours "test/data/query")
+        (packOutput show <$> runUndefinedBehaviours "test/data/query")
     ]

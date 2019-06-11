@@ -37,6 +37,8 @@ dependencies:
 - shelly
 - megaparsec
 - parser-combinators
+- conduit
+- resourcet
 
 library:
   source-dirs: src

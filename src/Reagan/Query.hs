@@ -3,17 +3,18 @@
 {-# LANGUAGE StandaloneDeriving #-}
 module Reagan.Query where
 
+import           Conduit
 import           Data.Bifunctor        (first)
+import qualified Data.ByteString.Lazy  as LBS
 import           Data.Fixed            (Pico)
 import           Data.List             (isPrefixOf)
 import           Data.Time.Clock       (NominalDiffTime)
 import           Data.Void
-import           System.Directory      (listDirectory, doesFileExist)
-import           System.FilePath.Posix ((</>))
-import qualified System.IO.Strict as IOS
+import           System.Directory      (doesFileExist, listDirectory)
+import           System.FilePath.Posix (takeFileName, (</>))
+import qualified System.IO.Strict      as IOS
 import           Text.Megaparsec       hiding (State)
 import           Text.Regex.PCRE.Heavy (Regex, compileM, gsub, re, (=~))
-import qualified Data.ByteString.Lazy  as LBS
 
 import           Pipes
 
@@ -58,6 +59,21 @@ loadResult directory generator profile = do
       if exists
       then Just . read . fixDuration <$> IOS.readFile (directory </> profile ++ suffix)
       else return Nothing
+
+repositoryStream :: (MonadIO m, MonadResource m)
+                 => FilePath
+                 -> [String]
+                 -> ConduitT () Result m ()
+repositoryStream repository profiles =
+     sourceDirectory repository
+  .| filterC (isPrefixOf "csmith_seed" . takeFileName)
+  .| mapMC load
+  .| concatC
+  where
+    load :: (MonadIO m) => FilePath -> m [Result]
+    load sample = liftIO $ do
+      prg <- loadGenerator sample
+      mapM (loadResult sample prg) profiles
 
 loadDirectory :: FilePath -> [String] -> IO [Result]
 loadDirectory repository profiles = do
