@@ -10,6 +10,7 @@ import           Data.Time.Clock       (NominalDiffTime)
 import           Data.Void
 import           System.Directory      (listDirectory, doesFileExist)
 import           System.FilePath.Posix ((</>))
+import qualified System.IO.Strict as IOS
 import           Text.Megaparsec       hiding (State)
 import           Text.Regex.PCRE.Heavy (Regex, compileM, gsub, re, (=~))
 import qualified Data.ByteString.Lazy  as LBS
@@ -21,10 +22,10 @@ import           Reagan.Execution      (ExecutionWithChecksum (..))
 import           Reagan.Generator      (GeneratedProgram (..))
 
 data Result = Result
-  { rCompiler  :: Maybe CompiledProgram
-  , rExecution :: Maybe ExecutionWithChecksum
-  , rGenerator :: GeneratedProgram
-  , rProfile   :: String
+  { rCompiler  :: !(Maybe CompiledProgram)
+  , rExecution :: !(Maybe ExecutionWithChecksum)
+  , rGenerator :: !GeneratedProgram
+  , rProfile   :: !String
   } deriving (Show)
 
 instance Read NominalDiffTime where
@@ -38,7 +39,7 @@ deriving instance Read GeneratedProgram
 
 loadGenerator :: FilePath -> IO GeneratedProgram
 loadGenerator directory =
-  read . fixDuration <$> readFile (directory </> "generator.out")
+  read . fixDuration <$> IOS.readFile (directory </> "generator.out")
 
 loadResult :: FilePath -> GeneratedProgram -> String -> IO Result
 loadResult directory generator profile = do
@@ -55,7 +56,7 @@ loadResult directory generator profile = do
     load suffix = do
       exists <- doesFileExist (directory </> profile ++ suffix)
       if exists
-      then Just . read . fixDuration <$> readFile (directory </> profile ++ suffix)
+      then Just . read . fixDuration <$> IOS.readFile (directory </> profile ++ suffix)
       else return Nothing
 
 loadDirectory :: FilePath -> [String] -> IO [Result]
