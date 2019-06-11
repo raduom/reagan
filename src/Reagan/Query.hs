@@ -76,15 +76,9 @@ repositoryStream repository profiles =
       mapM (loadResult sample prg) profiles
 
 loadDirectory :: FilePath -> [String] -> IO [Result]
-loadDirectory repository profiles = do
-  reports <-  filter (isPrefixOf "csmith_seed") <$> listDirectory repository
-  concat  <$> mapM mkReport reports
-  where
-    mkReport :: FilePath -> IO [Result]
-    mkReport localDirectory = do
-      let reportDirectory = repository </> localDirectory
-      generatorOutput <- loadGenerator reportDirectory
-      mapM (loadResult reportDirectory generatorOutput) profiles
+loadDirectory repository profiles = runConduitRes $
+     repositoryStream repository profiles
+  .| sinkList
 
 parseFile :: Parsec Void LBS.ByteString a
           -> FilePath
