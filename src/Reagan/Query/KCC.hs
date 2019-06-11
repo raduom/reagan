@@ -33,7 +33,7 @@ data CompilationMessage = CompilationMessage
   { cmLocation  :: Location
   , cmSeverity  :: Severity
   , cmMessage   :: String
-  , cmReference :: Either Reference String
+  , cmReference :: Reference
   } deriving (Show, Read)
 
 data StackFrame = StackFrame
@@ -70,8 +70,6 @@ toNewline = word8ToString <$> lexeme (someTill printChar eol)
 
 location :: Parser Location
 location = do
-  void $ tryOptional functionLocation
-  void $ tryOptional header
   filename   <- word8ToString <$>
                   someTill asciiChar (symbol ":")
   lineNumber <- L.decimal
@@ -82,6 +80,7 @@ location = do
 
 severity :: Parser Severity
 severity =
+
   (string "error" $> Error
   <|> string "warning" $> Warning
   <|> string "note" $> Note) <* symbol ":"
@@ -90,7 +89,7 @@ reference :: Parser Reference
 reference = do
   name     <- word8ToString <$> someTill printChar (symbol "(")
   code     <- word8ToString <$> someTill printChar (symbol ")")
-  void (symbol ":")
+  void (optional (symbol ":"))
   sections <- many section
   pure $ Reference name code sections
 
@@ -102,8 +101,7 @@ compilationMessage = do
   loc <- location
   sev <- severity
   msg <- toNewline
-  ref <- Left <$> try (lexeme reference) <|>
-           Right <$> codeSnippet
+  ref <- lexeme reference
   return $ CompilationMessage
     { cmLocation = loc
     , cmSeverity = sev
@@ -111,28 +109,9 @@ compilationMessage = do
     , cmReference  = ref
     }
 
-codeSnippet :: Parser String
-codeSnippet =
-  lexeme $ tryWithDefault "" $ toNewline <* string "^"
-
-functionLocation :: Parser String
-functionLocation = do
-  void (someTill asciiChar (symbol ":"))
-  void (lexeme (string "In function '"))
-  name <- word8ToString <$>
-     manyTill printChar (symbol "'")
-  void (symbol ":")
-  pure name
-
-header :: Parser ()
-header = do
-  void $ string "In file"
-  void toNewline
-  void $ many (string "from" >> toNewline)
-  void $ tryOptional (manyTill printChar (string "At top level:"))
-
 parseCompilation :: Parser [CompilationMessage]
-parseCompilation = many (lexeme compilationMessage) <* eof
+parseCompilation =
+  many (try compilationMessage) <* (many toNewline) <* eof
 
 -- Execution
 
@@ -148,6 +127,10 @@ executionMessage =
                    <*> errorStack
                    <*> reference
 
+unexpectedError :: Parser ByteString
+unexpectedError =
+  lexeme (string "Execution failed (configuration dumped)")
+
 errorStack :: Parser [String]
 errorStack = do
   void (string "> ")
@@ -155,4 +138,4 @@ errorStack = do
 
 parseExecution :: Parser [ExecutionMessage]
 parseExecution =
-  many (try executionMessage) <* eof
+  many (try executionMessage) <* optional unexpectedError <* eof
