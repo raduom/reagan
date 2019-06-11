@@ -111,7 +111,7 @@ compilationMessage = do
 
 parseCompilation :: Parser [CompilationMessage]
 parseCompilation =
-  many (try compilationMessage) <* (many toNewline) <* eof
+  many (try compilationMessage) <* many toNewline <* eof
 
 -- Execution
 
@@ -129,7 +129,8 @@ executionMessage =
 
 unexpectedError :: Parser ByteString
 unexpectedError =
-  lexeme (string "Execution failed (configuration dumped)")
+      lexeme (string "Execution failed (configuration dumped)")
+  <|> lexeme (string "Fatal error" <* toNewline)
 
 errorStack :: Parser [String]
 errorStack = do
