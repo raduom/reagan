@@ -127,6 +127,9 @@ executionMessage =
                    <*> errorStack
                    <*> reference
 
+syntaxError :: Parser ()
+syntaxError = void (lexeme (string "/tmp") <* toNewline)
+
 unexpectedError :: Parser ByteString
 unexpectedError =
       lexeme (string "Execution failed (configuration dumped)")
@@ -139,4 +142,5 @@ errorStack = do
 
 parseExecution :: Parser [ExecutionMessage]
 parseExecution =
-  many (try executionMessage) <* optional unexpectedError <* eof
+      (syntaxError >> return [])
+  <|> (many (try executionMessage) <* optional unexpectedError <* eof)
