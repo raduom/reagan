@@ -1,0 +1,1 @@
+ExecutionWithChecksum {ewcTimeout = 60, ewcOutput = "", ewcError = "/tmp/kcc_default-304-12868: 1: /tmp/kcc_default-304-12868: Syntax error: \"(\" unexpected\n", ewcChecksum = Nothing, ewcRunningTime = 0.523782s, ewcExecutablePath = "/tmp/kcc_default-304-12868"}

@@ -1,0 +1,1 @@
+CompiledProgram {cpTimeout = 60, cpVersion = "The CompCert C verified compiler, version 3.2\n", cpOutput = "", cpError = "/tmp/csmith-generated-63-83665.c:1324: warning: incompatible conversion assigning to 'int32_t *' from 'uint32_t *'\n", cpRunningTime = 22.031536s, cpExecutablePath = Just "/tmp/ccomp_default-63-83667", cpCompilerTag = "ccomp_default"}

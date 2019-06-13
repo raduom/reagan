@@ -66,7 +66,7 @@ tryWithDefault :: a -> Parser a -> Parser a
 tryWithDefault d p = fromMaybe d <$> tryOptional p
 
 toNewline :: Parser String
-toNewline = word8ToString <$> lexeme (someTill printChar eol)
+toNewline = word8ToString <$> lexeme (someTill (satisfy (const True)) eol)
 
 location :: Parser Location
 location = do
