@@ -60,6 +60,14 @@ executables:
     - -O2
     dependencies:
     - reagan
+  cv-query-exe:
+    main:                Main
+    source-dirs:         app/cv-query
+    ghc-options:
+    - -rtsopts
+    - -O2
+    dependencies:
+    - reagan
 
 tests:
   reagan-test:

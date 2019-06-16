@@ -16,6 +16,7 @@ import           Reagan.Generator           (GeneratedProgram (..))
 import           Reagan.Query               (Result (..), loadDirectory,
                                              loadGenerator, loadResult,
                                              parseFile)
+import           Reagan.Query.CV            (runConstraintViolations)
 import           Reagan.Query.KCC           (parseCompilation, parseExecution)
 import           Reagan.Query.UB            (runUndefinedBehaviours)
 
@@ -119,4 +120,8 @@ queryTests =
         "Undefined behaviours"
         "test/data/query/ub.out"
         (packOutput show <$> runUndefinedBehaviours "test/data/query")
+    , goldenVsString
+        "Constraint Violations"
+        "test/data/query/cv.out"
+        (packOutput show <$> runConstraintViolations "test/data/query")
     ]
