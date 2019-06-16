@@ -63,11 +63,13 @@ focus (Result _ (Just execution) generator _) =
 focus _ = Nothing
 
 extract :: Skim -> [UndefinedBehaviour]
-extract (Skim seed msgs) = map extractMessage msgs
+extract (Skim seed msgs) = mapMaybe extractMessage msgs
   where
-    extractMessage :: ExecutionMessage -> UndefinedBehaviour
-    extractMessage (ExecutionMessage msg _ _) =
-      UndefinedBehaviour { ubDescription = msg, ubSeed = seed }
+    extractMessage :: ExecutionMessage -> Maybe UndefinedBehaviour
+    extractMessage em@(ExecutionMessage msg _ _) =
+      if isUndefinedBehaviour em
+      then Just $ UndefinedBehaviour { ubDescription = msg, ubSeed = seed }
+      else Nothing
 
 isUndefinedBehaviour :: ExecutionMessage -> Bool
 isUndefinedBehaviour (ExecutionMessage _ _ (Reference name _ _)) =

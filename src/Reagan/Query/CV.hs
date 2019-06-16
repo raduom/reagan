@@ -63,12 +63,14 @@ focus (Result (Just compiler) _ generator _) =
 focus _ = Nothing
 
 extract :: Skim -> [ConstraintViolation]
-extract (Skim seed msgs) = map extractMessage msgs
+extract (Skim seed msgs) = mapMaybe extractMessage msgs
   where
-    extractMessage :: CompilationMessage -> ConstraintViolation
-    extractMessage (CompilationMessage _ _ msg _) =
-      ConstraintViolation { cvDescription = msg, cvSeed = seed }
+    extractMessage :: CompilationMessage -> Maybe ConstraintViolation
+    extractMessage em@(CompilationMessage _ _ msg _) =
+      if isConstraintViolation em
+      then Just $ ConstraintViolation { cvDescription = msg, cvSeed = seed }
+      else Nothing
 
-isUndefinedBehaviour :: ExecutionMessage -> Bool
-isUndefinedBehaviour (ExecutionMessage _ _ (Reference name _ _)) =
-  "Undefined behavior" `isPrefixOf` name
+isConstraintViolation :: CompilationMessage -> Bool
+isConstraintViolation (CompilationMessage _ _ _ (Reference name _ _)) =
+  "Constraint violation" `isPrefixOf` name
