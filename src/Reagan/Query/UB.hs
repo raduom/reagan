@@ -28,7 +28,8 @@ data Skim = Skim
 
 runUndefinedBehaviours :: FilePath -> IO [UndefinedBehaviour]
 runUndefinedBehaviours repository = runConduitRes $
-     repositoryStream repository ["kcc_default"]
+     sourceDirectory repository
+  .| repositoryStream ["kcc_default"]
   .| queryUndefinedBehaviours
   .| sinkList
 

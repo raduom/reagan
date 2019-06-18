@@ -12,7 +12,8 @@ serialize (ConstraintViolation desc seed) =
 
 main :: IO ()
 main = runConduitRes $
-     repositoryStream "." ["kcc_default"]
+     sourceDirectory "."
+  .| repositoryStream ["kcc_default"]
   .| queryConstraintViolations
   .| mapC (LC8.pack . serialize)
   .| sinkFile "cv-query.out"

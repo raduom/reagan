@@ -28,7 +28,8 @@ data Skim = Skim
 
 runConstraintViolations :: FilePath -> IO [ConstraintViolation]
 runConstraintViolations repository = runConduitRes $
-     repositoryStream repository ["kcc_default"]
+     sourceDirectory repository
+  .| repositoryStream ["kcc_default"]
   .| queryConstraintViolations
   .| sinkList
 
@@ -73,4 +74,4 @@ extract (Skim seed msgs) = mapMaybe extractMessage msgs
 
 isConstraintViolation :: CompilationMessage -> Bool
 isConstraintViolation (CompilationMessage _ _ _ (Reference name _ _)) =
-  "Constraint violation" `isPrefixOf` name
+     "Constraint violation" `isPrefixOf` name

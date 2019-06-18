@@ -12,7 +12,8 @@ serialize (UndefinedBehaviour desc seed) =
 
 main :: IO ()
 main = runConduitRes $
-     repositoryStream "." ["kcc_default"]
+     sourceDirectory "."
+  .| repositoryStream ["kcc_default"]
   .| queryUndefinedBehaviours
   .| mapC (LC8.pack . serialize)
   .| sinkFile "ub-query.out"

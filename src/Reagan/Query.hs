@@ -60,13 +60,10 @@ loadResult directory generator profile = do
       then Just . read . fixDuration <$> IOS.readFile (directory </> profile ++ suffix)
       else return Nothing
 
-repositoryStream :: (MonadIO m, MonadResource m)
-                 => FilePath
-                 -> [String]
-                 -> ConduitT () Result m ()
-repositoryStream repository profiles =
-     sourceDirectory repository
-  .| filterC (isPrefixOf "csmith_seed" . takeFileName)
+repositoryStream :: MonadIO m
+                 => [String] -> ConduitT FilePath Result m ()
+repositoryStream profiles =
+     filterC (isPrefixOf "csmith_seed" . takeFileName)
   .| mapMC load
   .| concatC
   where
@@ -77,7 +74,8 @@ repositoryStream repository profiles =
 
 loadDirectory :: FilePath -> [String] -> IO [Result]
 loadDirectory repository profiles = runConduitRes $
-     repositoryStream repository profiles
+     sourceDirectory repository
+  .| repositoryStream profiles
   .| sinkList
 
 parseFile :: Parsec Void LBS.ByteString a
