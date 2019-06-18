@@ -1,6 +1,7 @@
 module Main where
 
 import Conduit
+import Data.Conduit.Combinators
 import qualified Data.ByteString.Char8 as LC8
 
 import Reagan.Query.UB
@@ -12,7 +13,8 @@ serialize (UndefinedBehaviour desc seed) =
 
 main :: IO ()
 main = runConduitRes $
-     sourceDirectory "."
+     stdin
+  .| mapC LC8.unpack
   .| repositoryStream ["kcc_default"]
   .| queryUndefinedBehaviours
   .| mapC (LC8.pack . serialize)
