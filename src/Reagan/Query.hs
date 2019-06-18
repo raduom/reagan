@@ -69,6 +69,7 @@ repositoryStream profiles =
   where
     load :: (MonadIO m) => FilePath -> m [Result]
     load sample = liftIO $ do
+      putStrLn $ "Processing " ++ sample
       prg <- loadGenerator sample
       mapM (loadResult sample prg) profiles
 
