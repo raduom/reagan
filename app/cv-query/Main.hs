@@ -16,6 +16,7 @@ main :: IO ()
 main = runConduitRes $
      stdin
   .| mapC LC8.unpack
+  .| linesUnboundedC
   .| repositoryStream ["kcc_default"]
   .| queryConstraintViolations
   .| mapC (LC8.pack . serialize)
