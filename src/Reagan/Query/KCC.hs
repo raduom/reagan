@@ -111,7 +111,7 @@ compilationMessage = do
 
 parseCompilation :: Parser [CompilationMessage]
 parseCompilation =
-  many (try compilationMessage) <* many toNewline <* eof
+  many (try compilationMessage) <* many (satisfy (const True)) <* eof
 
 -- Execution
 
