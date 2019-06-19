@@ -39,6 +39,7 @@ dependencies:
 - parser-combinators
 - conduit
 - resourcet
+- streamly
 
 library:
   source-dirs: src
