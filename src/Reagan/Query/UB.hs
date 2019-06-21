@@ -1,15 +1,20 @@
 module Reagan.Query.UB where
 
-import           Conduit
+import           Control.Monad.IO.Class     (MonadIO)
 import qualified Data.ByteString.Lazy       as BSL
 import qualified Data.ByteString.Lazy.Char8 as LC8
+import           Data.Function              ((&))
 import           Data.List                  (isPrefixOf)
 import           Data.Maybe                 (mapMaybe)
 import           Data.Void                  (Void)
-import           Data.Word                  (Word8)
+import           System.Directory           (listDirectory)
+import           System.FilePath            ((</>))
 import           Text.Megaparsec            (runParser)
 import           Text.Megaparsec.Error      (ParseErrorBundle (..),
                                              errorBundlePretty)
+
+import           Streamly
+import qualified Streamly.Prelude           as S
 
 import           Reagan.Execution           (ExecutionWithChecksum (..))
 import           Reagan.Generator           (GeneratedProgram (..))
@@ -27,17 +32,19 @@ data Skim = Skim
   } deriving (Show, Read)
 
 runUndefinedBehaviours :: FilePath -> IO [UndefinedBehaviour]
-runUndefinedBehaviours repository = runConduitRes $
-     sourceDirectory repository
-  .| repositoryStream ["kcc_default"]
-  .| queryUndefinedBehaviours
-  .| sinkList
+runUndefinedBehaviours repository =
+  listDirectory repository >>= \dirs ->
+      S.fromList (map (repository </>) dirs)
+    & repositoryStream ["kcc_default"]
+    & queryUndefinedBehaviours
+    & S.toList
 
 queryUndefinedBehaviours :: (MonadIO m)
-                         => ConduitT Result UndefinedBehaviour m ()
-queryUndefinedBehaviours =
-     mapC getUndefinedBehaviours
-  .| concatC
+                         => SerialT m Result
+                         -> SerialT m UndefinedBehaviour
+queryUndefinedBehaviours resultS =
+    S.concatMap S.fromList
+  $ S.map getUndefinedBehaviours resultS
 
 getUndefinedBehaviours :: Result -> [UndefinedBehaviour]
 getUndefinedBehaviours result = maybe [] extract (focus result)

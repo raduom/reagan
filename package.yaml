@@ -27,7 +27,6 @@ dependencies:
 - bytestring
 - pcre-light
 - pcre-heavy
-- pipes
 - safe
 - time
 - filepath
@@ -37,8 +36,6 @@ dependencies:
 - shelly
 - megaparsec
 - parser-combinators
-- conduit
-- resourcet
 - streamly
 
 library:

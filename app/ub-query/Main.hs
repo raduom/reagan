@@ -1,8 +1,14 @@
 module Main where
 
-import Conduit
-import Data.Conduit.Combinators
-import qualified Data.ByteString.Char8 as LC8
+import Data.Function ((&))
+import System.IO (stdin)
+import Data.Char (ord, chr)
+
+import qualified Streamly.FileSystem.Handle as FH
+import qualified Streamly.FileSystem.File as File
+import qualified Streamly.Mem.Array as A
+import qualified Streamly.Fold as FL
+import qualified Streamly.Prelude as S
 
 import Reagan.Query.UB
 import Reagan.Query
@@ -12,10 +18,13 @@ serialize (UndefinedBehaviour desc seed) =
   seed ++ " : " ++ desc ++ "\n"
 
 main :: IO ()
-main = runConduitRes $
-     stdin
-  .| mapC LC8.unpack
-  .| repositoryStream ["kcc_default"]
-  .| queryUndefinedBehaviours
-  .| mapC (LC8.pack . serialize)
-  .| sinkFile "ub-query.out"
+main =
+    FH.read stdin
+  & S.map (chr . fromIntegral)
+  & FL.splitOn (A.fromList ['\n']) FL.toList
+  & repositoryStream ["kcc_default"]
+  & queryUndefinedBehaviours
+  & S.map (A.fromList . serialize)
+  & A.unlinesArraysBy '\n'
+  & S.map (fromIntegral . ord)
+  & File.write "ub-query.out"

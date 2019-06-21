@@ -1,28 +1,29 @@
+{-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE QuasiQuotes        #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Reagan.Query where
 
-import           Conduit
-import           Data.Bifunctor           (first)
-import qualified Data.ByteString.Char8    as SC8
-import qualified Data.ByteString.Lazy     as LBS
-import           Data.Conduit.Combinators (iterM)
-import           Data.Fixed               (Pico)
-import           Data.List                (isPrefixOf)
-import           Data.Time.Clock          (NominalDiffTime)
-import           Data.Void
-import           System.Directory         (doesFileExist, listDirectory)
-import           System.FilePath.Posix    (takeFileName, (</>))
-import qualified System.IO.Strict         as IOS
-import           Text.Megaparsec          hiding (State)
-import           Text.Regex.PCRE.Heavy    (Regex, compileM, gsub, re, (=~))
+import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Data.Bifunctor         (first)
+import qualified Data.ByteString.Lazy   as LBS
+import           Data.Fixed             (Pico)
+import           Data.Function          ((&))
+import           Data.List              (isPrefixOf)
+import           Data.Time.Clock        (NominalDiffTime)
+import           Data.Void              (Void)
+import           System.Directory       (doesFileExist, listDirectory)
+import           System.FilePath.Posix  (takeFileName, (</>))
+import qualified System.IO.Strict       as IOS
+import           Text.Megaparsec        hiding (State)
+import           Text.Regex.PCRE.Heavy  (gsub, re)
 
-import           Pipes
+import           Streamly
+import qualified Streamly.Prelude       as S
 
-import           Reagan.Compiler          (CompiledProgram (..))
-import           Reagan.Execution         (ExecutionWithChecksum (..))
-import           Reagan.Generator         (GeneratedProgram (..))
+import           Reagan.Compiler        (CompiledProgram (..))
+import           Reagan.Execution       (ExecutionWithChecksum (..))
+import           Reagan.Generator       (GeneratedProgram (..))
 
 data Result = Result
   { rCompiler  :: !(Maybe CompiledProgram)
@@ -62,23 +63,26 @@ loadResult directory generator profile = do
       then Just . read . fixDuration <$> IOS.readFile (directory </> profile ++ suffix)
       else return Nothing
 
-repositoryStream :: (MonadIO m, MonadResource m)
-                 => [String] -> ConduitT FilePath Result m ()
-repositoryStream profiles =
-     filterC (isPrefixOf "csmith_seed" . takeFileName)
-  .| mapMC load
-  .| concatC
+repositoryStream :: (MonadAsync m)
+                 => [String]
+                 -> SerialT m FilePath
+                 -> SerialT m Result
+repositoryStream profiles pathS =
+    pathS
+  & S.filter (isPrefixOf "csmith_seed" . takeFileName)
+  & S.mapM load
+  & S.concatMap S.fromList
   where
     load :: (MonadIO m) => FilePath -> m [Result]
     load sample = liftIO $ do
       prg <- loadGenerator sample
       mapM (loadResult sample prg) profiles
 
+
 loadDirectory :: FilePath -> [String] -> IO [Result]
-loadDirectory repository profiles = runConduitRes $
-     sourceDirectory repository
-  .| repositoryStream profiles
-  .| sinkList
+loadDirectory repository profiles =
+  listDirectory repository >>=
+    (S.toList . repositoryStream profiles . S.fromList . map (repository </>))
 
 parseFile :: Parsec Void LBS.ByteString a
           -> FilePath

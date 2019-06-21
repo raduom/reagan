@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-13.23
+resolver: lts-13.26
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -37,6 +37,8 @@ resolver: lts-13.23
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - .
+- ../streamly/
+
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 # extra-deps: []

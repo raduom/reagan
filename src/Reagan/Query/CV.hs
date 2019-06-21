@@ -1,12 +1,16 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Reagan.Query.CV where
 
-import           Conduit
 import qualified Data.ByteString.Lazy       as BSL
 import qualified Data.ByteString.Lazy.Char8 as LC8
+import           Data.Function              ((&))
 import           Data.List                  (isPrefixOf)
 import           Data.Maybe                 (mapMaybe)
 import           Data.Void                  (Void)
-import           Data.Word                  (Word8)
+import           Streamly
+import qualified Streamly.Prelude           as S
+import           System.Directory           (listDirectory)
+import           System.FilePath            ((</>))
 import           Text.Megaparsec            (runParser)
 import           Text.Megaparsec.Error      (ParseErrorBundle (..),
                                              errorBundlePretty)
@@ -27,17 +31,19 @@ data Skim = Skim
   } deriving (Show, Read)
 
 runConstraintViolations :: FilePath -> IO [ConstraintViolation]
-runConstraintViolations repository = runConduitRes $
-     sourceDirectory repository
-  .| repositoryStream ["kcc_default"]
-  .| queryConstraintViolations
-  .| sinkList
+runConstraintViolations repository =
+  listDirectory repository >>= \dirs ->
+      S.fromList (map (repository </>) dirs)
+    & repositoryStream ["kcc_default"]
+    & queryConstraintViolations
+    & S.toList
 
-queryConstraintViolations :: (MonadIO m)
-                         => ConduitT Result ConstraintViolation m ()
-queryConstraintViolations =
-     mapC getConstraintViolations
-  .| concatC
+queryConstraintViolations :: (MonadAsync m)
+                          => SerialT m Result
+                          -> SerialT m ConstraintViolation
+queryConstraintViolations resultS =
+    S.concatMap S.fromList
+  $ S.map getConstraintViolations resultS
 
 getConstraintViolations :: Result -> [ConstraintViolation]
 getConstraintViolations result = maybe [] extract (focus result)

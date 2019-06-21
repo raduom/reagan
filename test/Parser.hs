@@ -111,8 +111,6 @@ kccParserTests =
         (parse parseExecution "kcc_exec.txt")
     ]
 
-
-
 queryTests :: TestTree
 queryTests =
   testGroup "Query"
