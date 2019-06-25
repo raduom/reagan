@@ -41,7 +41,7 @@ ENV CPATH=":/usr/local/include/csmith-2.3.0" \
     PATH="/root/.local/bin:.:${PATH}"
 
 RUN wget -qO- https://get.haskellstack.org/ | sh \
- && stack --resolver lts-10.4 setup
+ && stack --resolver lts-13.23 setup
 
 COPY . reagan/
 
